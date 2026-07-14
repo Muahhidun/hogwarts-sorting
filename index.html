@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Хогвартс: Шляпа-распределитель — Твой магический путь</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 15 C42 20 48 30 40 40 C35 50 25 50 22 60 C20 70 30 75 35 80 C38 82 62 82 65 80 C70 75 80 70 78 60 C75 50 65 50 60 40 C52 30 58 20 50 15 Z' fill='%238b5a2b' stroke='%235c3a21' stroke-width='4' stroke-linejoin='round'/><path d='M10 80 C30 75 70 75 90 80 C80 88 20 88 10 80 Z' fill='%235c3a21' stroke='%233d2516' stroke-width='3'/><path d='M42 66 C45 69 55 69 58 66' fill='none' stroke='%233d2516' stroke-width='4' stroke-linecap='round'/><circle cx='43' cy='56' r='3' fill='%233d2516'/><circle cx='57' cy='56' r='3' fill='%233d2516'/></svg>">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-default">
+  
+  <!-- Ambient background elements -->
+  <div class="stars-bg"></div>
+  <div class="ambient-glow"></div>
+  
+  <header class="app-header">
+    <div class="logo">
+      <span class="crest-icon">⚡</span>
+      <span class="brand-text">Hogwarts Sorting</span>
+    </div>
+    <button id="sound-toggle" class="sound-btn" aria-label="Включить звук">
+      <svg class="icon-sound-off" viewBox="0 0 24 24" width="20" height="20">
+        <path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-8 5.77H2v6h4l5 5V4L6 9z"/>
+      </svg>
+      <svg class="icon-sound-on" viewBox="0 0 24 24" width="20" height="20" style="display: none;">
+        <path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+      </svg>
+    </button>
+  </header>
+
+  <main id="app-container">
+    
+    <!-- SECTION 1: WELCOME SCREEN -->
+    <section id="welcome-screen" class="view active">
+      <div class="welcome-card glass-panel">
+        <div class="sorting-hat-intro-icon">
+          <!-- Hand-drawn style sorting hat SVG -->
+          <svg viewBox="0 0 100 100" class="svg-sorting-hat" width="120" height="120">
+            <path d="M50,10 C45,15 48,22 44,28 C40,34 32,32 30,38 C28,44 38,48 40,54 C42,60 30,68 32,74 C34,80 66,80 68,74 C70,68 58,60 60,54 C62,48 72,44 70,38 C68,32 60,34 56,28 C52,22 55,15 50,10 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M20,80 C30,75 70,75 80,80 C70,85 30,85 20,80 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M42,62 C45,65 55,65 58,62" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="43" cy="53" r="2" fill="currentColor"/>
+            <circle cx="57" cy="53" r="2" fill="currentColor"/>
+            <path d="M40,50 C43,48 47,51 47,51" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M60,50 C57,48 53,51 53,51" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <h1 class="font-magic headline-glow">Распределяющая Шляпа</h1>
+        <p class="subtitle">Открой свой истинный факультет Хогвартса и начни персональное обучение магии.</p>
+        
+        <form id="start-form" class="start-form-container">
+          <div class="input-group">
+            <label for="user-name">Как тебя зовут, юный маг?</label>
+            <input type="text" id="user-name" placeholder="Введите имя..." required autocomplete="name" minlength="2" maxlength="30">
+            <span class="input-glow"></span>
+          </div>
+          <button type="submit" class="magic-btn">
+            <span class="btn-text">Начать распределение</span>
+            <span class="btn-spark"></span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- SECTION 2: QUIZ SCREEN -->
+    <section id="quiz-screen" class="view">
+      <div class="quiz-container glass-panel">
+        
+        <!-- Progress section -->
+        <div class="quiz-progress-bar">
+          <div class="progress-track">
+            <div id="progress-fill" class="progress-fill">
+              <span class="progress-wand-spark">✨</span>
+            </div>
+          </div>
+          <div class="progress-stats">
+            <span id="quiz-steps-display">Вопрос 1 из 5</span>
+          </div>
+        </div>
+
+        <div class="quiz-content">
+          <h2 id="question-text" class="font-magic">Вы подходите к развилке в Запретном лесу. Какая тропа манит вас сильнее всего?</h2>
+          
+          <div id="options-container" class="options-grid">
+            <!-- Options dynamically generated by JS -->
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <button id="prev-btn" class="nav-btn prev" style="visibility: hidden;">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+            <span>Назад</span>
+          </button>
+          <button id="next-btn" class="nav-btn next" disabled>
+            <span>Далее</span>
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: SORTING HAT LOADING SCREEN -->
+    <section id="sorting-screen" class="view">
+      <div class="sorting-ceremony-card glass-panel">
+        <div class="sorting-hat-animation-container">
+          <svg viewBox="0 0 100 100" class="svg-sorting-hat speaking" width="160" height="160">
+            <path d="M50,10 C45,15 48,22 44,28 C40,34 32,32 30,38 C28,44 38,48 40,54 C42,60 30,68 32,74 C34,80 66,80 68,74 C70,68 58,60 60,54 C62,48 72,44 70,38 C68,32 60,34 56,28 C52,22 55,15 50,10 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M20,80 C30,75 70,75 80,80 C70,85 30,85 20,80 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path id="hat-mouth" d="M42,64 C45,64 55,64 58,64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="43" cy="53" r="2" fill="currentColor"/>
+            <circle cx="57" cy="53" r="2" fill="currentColor"/>
+            <path d="M40,50 C43,47 47,51 47,51" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M60,50 C57,47 53,51 53,51" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <div class="magic-circles">
+            <div class="circle c1"></div>
+            <div class="circle c2"></div>
+          </div>
+        </div>
+        <div class="sorting-hat-quotes">
+          <p id="hat-quote" class="font-magic">Хмм...</p>
+        </div>
+        <div class="sorting-status">Анализируем ваши качества...</div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: RESULT SCREEN -->
+    <section id="result-screen" class="view">
+      <div class="result-layout">
+        
+        <!-- Left Side: Custom 3D Card and congratulations -->
+        <div class="result-left">
+          <button id="result-back-btn" class="back-link" style="align-self: flex-start; margin-bottom: 0.5rem;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            Изменить ответы опросника
+          </button>
+          <div class="house-congrats">
+            <span class="celebration-tag">Распределение Завершено!</span>
+            <h2 class="font-magic house-title" id="sorted-house-name">Гриффиндор</h2>
+            <p class="house-desc" id="sorted-house-desc">Факультет храбрых сердцем, готовых пойти на риск ради защиты справедливости и друзей.</p>
+          </div>
+
+          <!-- Wizard Card 3D Component -->
+          <div class="card-container-3d">
+            <div class="card-3d" id="wizard-card">
+              <div class="card-front">
+                <div class="card-border"></div>
+                <div class="card-header-wizard">
+                  <span class="card-hogwarts">Hogwarts Member</span>
+                  <span class="card-house-crest" id="card-crest">🦁</span>
+                </div>
+                <div class="card-photo-container" id="card-photo-trigger">
+                  <div class="card-avatar" id="card-avatar-placeholder">
+                    <!-- Default avatar outline -->
+                    <svg viewBox="0 0 24 24" width="60" height="60" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                  </div>
+                  <img id="card-photo-img" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                  <div class="upload-overlay">
+                    <span class="upload-icon">📷</span>
+                    <span class="upload-text">Добавить фото</span>
+                  </div>
+                  <div class="card-photo-glare"></div>
+                </div>
+                <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+                <div class="card-info">
+                  <div class="card-field">
+                    <label>Студент</label>
+                    <div class="card-value" id="card-user-name">Гарри Поттер</div>
+                  </div>
+                  <div class="card-field">
+                    <label>Факультет</label>
+                    <div class="card-value" id="card-house-val">Гриффиндор</div>
+                  </div>
+                  <div class="card-row">
+                    <div class="card-field">
+                      <label>Статус</label>
+                      <div class="card-value">Первокурсник</div>
+                    </div>
+                    <div class="card-field">
+                      <label>Палочка</label>
+                      <div class="card-value" id="card-wand-val">Перо Феникса</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-watermark" id="card-watermark-text">GRYFFINDOR</div>
+              </div>
+              <div class="card-back">
+                <div class="card-back-pattern">
+                  <div class="hogwarts-seal">🛡️</div>
+                  <p class="motto">Draco Dormiens Nunquam Titillandus</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-hint">Пошевели мышкой или наклони телефон, чтобы увидеть объем</p>
+        </div>
+
+        <!-- Right Side: Personalized Skills & Call to Action -->
+        <div class="result-right">
+          <div class="skills-assessment glass-panel">
+            <h3 class="font-magic section-subtitle">Магический Профиль</h3>
+            
+            <div class="stats-bars">
+              <div class="stat-item">
+                <div class="stat-info">
+                  <span>Заклинания & Защита</span>
+                  <span id="stat-defense-val">90%</span>
+                </div>
+                <div class="stat-bar"><div class="stat-fill" id="stat-defense-fill"></div></div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-info">
+                  <span>Зельеварение</span>
+                  <span id="stat-potions-val">65%</span>
+                </div>
+                <div class="stat-bar"><div class="stat-fill" id="stat-potions-fill"></div></div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-info">
+                  <span>Магические Существа</span>
+                  <span id="stat-creatures-val">40%</span>
+                </div>
+                <div class="stat-bar"><div class="stat-fill" id="stat-creatures-fill"></div></div>
+              </div>
+            </div>
+
+            <div class="patronus-info">
+              <span class="patronus-title">Ваш потенциальный Патронус:</span>
+              <span class="patronus-name" id="patronus-val">Серебряный Олень</span>
+            </div>
+          </div>
+
+          <!-- Marketing/Motivation Section (Roadmap Paywall) -->
+          <div class="roadmap-paywall-container glass-panel">
+            <h3 class="font-magic section-subtitle">Программа Обучения на 2026/27 год</h3>
+            <p class="paywall-intro">Шляпа составила твою личную карту развития. Твой путь магии заблокирован:</p>
+            
+            <div class="roadmap-preview">
+              <div class="roadmap-step completed">
+                <span class="step-num">1</span>
+                <div class="step-content">
+                  <h4>Распределение факультетов</h4>
+                  <p>Определено: <strong id="roadmap-house-name">Гриффиндор</strong></p>
+                </div>
+                <span class="step-status">✅</span>
+              </div>
+              
+              <div class="roadmap-step locked">
+                <span class="step-num">2</span>
+                <div class="step-content">
+                  <h4>Курс основ заклинаний и левитации</h4>
+                  <p class="blurred-text">Изучение формул Вингардиум Левиоса и Алохомора</p>
+                </div>
+                <span class="step-status">🔒</span>
+              </div>
+
+              <div class="roadmap-step locked">
+                <span class="step-num">3</span>
+                <div class="step-content">
+                  <h4>Практическая защита от Темных Искусств</h4>
+                  <p class="blurred-text">Призыв Патронуса и борьба с боггартами</p>
+                </div>
+                <span class="step-status">🔒</span>
+              </div>
+            </div>
+
+            <!-- Tiers Pricing -->
+            <div class="subscription-selector">
+              <h4>Выберите способ доступа для активации профиля:</h4>
+              <div class="tiers-grid">
+                
+                <!-- Tier 1: Weekly -->
+                <div class="tier-card" data-tier="weekly" data-price="990 ₸">
+                  <div class="tier-badge">Пробный</div>
+                  <div class="tier-name">Неделя</div>
+                  <div class="tier-price">990 ₸</div>
+                  <div class="tier-period">каждую неделю</div>
+                  <ul class="tier-features">
+                    <li>Цифровой кабинет</li>
+                    <li>Доступ к курсу 1-й недели</li>
+                  </ul>
+                </div>
+
+                <!-- Tier 2: Monthly (Popular) -->
+                <div class="tier-card active" data-tier="monthly" data-price="2 990 ₸">
+                  <div class="tier-badge popular">Популярно</div>
+                  <div class="tier-name">1 Месяц</div>
+                  <div class="tier-price">2 990 ₸</div>
+                  <div class="tier-period">каждый месяц</div>
+                  <ul class="tier-features">
+                    <li>Весь учебный план</li>
+                    <li>Digital Студенческий Билет</li>
+                    <li>Личный Куратор</li>
+                  </ul>
+                </div>
+
+                <!-- Tier 3: Lifetime (One-time) -->
+                <div class="tier-card" data-tier="lifetime" data-price="9 990 ₸">
+                  <div class="tier-badge value">Выгодно</div>
+                  <div class="tier-name">Навсегда</div>
+                  <div class="tier-price">9 990 ₸</div>
+                  <div class="tier-period">разовый платеж</div>
+                  <ul class="tier-features">
+                    <li>Пожизненный доступ</li>
+                    <li><strong>Физический ID-Билет</strong></li>
+                    <li>Письмо из Хогвартса почтой</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+
+            <button id="activate-profile-btn" class="magic-btn action">
+              <span class="btn-text">Активировать профиль за 2 990 ₸</span>
+              <span class="btn-spark"></span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 5: PAYMENT SCREEN (CHECKOUT) -->
+    <section id="payment-screen" class="view">
+      <div class="payment-container glass-panel">
+        <button id="payment-back-btn" class="back-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+          </svg>
+          Вернуться к результатам
+        </button>
+
+        <div class="payment-layout">
+          <!-- Summary -->
+          <div class="payment-summary">
+            <h3 class="font-magic">Оформление подписки</h3>
+            <div class="summary-details">
+              <div class="summary-row">
+                <span>Тариф:</span>
+                <strong id="summary-tier-name">1 Месяц (Подписка)</strong>
+              </div>
+              <div class="summary-row">
+                <span>Магический факультет:</span>
+                <span id="summary-house-name">Гриффиндор</span>
+              </div>
+              <hr class="summary-divider">
+              <div class="summary-row total">
+                <span>К оплате:</span>
+                <span id="summary-price-val">2 990 ₸</span>
+              </div>
+            </div>
+            <div class="checkout-guarantee">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+              </svg>
+              <span>Безопасная оплата. Вы можете отменить подписку в любой момент в личном кабинете.</span>
+            </div>
+          </div>
+
+          <!-- Checkout Form -->
+          <form id="checkout-form" class="checkout-form">
+            <h4 class="form-title">Способ оплаты: Банковская карта</h4>
+            
+            <div class="input-row">
+              <div class="input-group">
+                <label for="card-holder">Имя владельца карты</label>
+                <input type="text" id="card-holder" placeholder="IVAN IVANOV" required autocomplete="cc-name" pattern="[a-zA-Z\s]{4,30}">
+                <span class="error-msg">Только латинские буквы</span>
+              </div>
+            </div>
+
+            <div class="input-row">
+              <div class="input-group">
+                <label for="card-number">Номер карты</label>
+                <div class="input-with-icon">
+                  <input type="text" id="card-number" placeholder="4000 1234 5678 9010" required autocomplete="cc-number">
+                  <span id="card-brand-icon" class="card-brand">💳</span>
+                </div>
+                <span class="error-msg">Неверный номер карты</span>
+              </div>
+            </div>
+
+            <div class="input-row split">
+              <div class="input-group">
+                <label for="card-expiry">Срок действия</label>
+                <input type="text" id="card-expiry" placeholder="ММ/ГГ" required autocomplete="cc-exp" maxlength="5">
+                <span class="error-msg">Срок истек</span>
+              </div>
+              <div class="input-group">
+                <label for="card-cvc">CVC/CVV</label>
+                <input type="password" id="card-cvc" placeholder="***" required autocomplete="cc-csc" maxlength="3" pattern="\d{3}">
+                <span class="error-msg">3 цифры сзади</span>
+              </div>
+            </div>
+
+            <button type="submit" class="magic-btn pay-submit" id="pay-submit-btn">
+              <span class="btn-text">Оплатить подписку</span>
+              <span class="btn-spinner" style="display: none;"></span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: SUCCESS SCREEN (HOGWARTS ENVELOPE) -->
+    <section id="success-screen" class="view">
+      <div class="success-envelope-container">
+        
+        <!-- Interactive Letter Envelope -->
+        <div class="letter-envelope" id="letter-envelope">
+          <div class="envelope-flap"></div>
+          <div class="envelope-pocket"></div>
+          <div class="envelope-wax-seal" id="wax-seal">
+            <span class="seal-letter">H</span>
+          </div>
+          
+          <div class="envelope-letter" id="envelope-letter">
+            <div class="letter-content">
+              <div class="letter-header">
+                <div class="hogwarts-crest-letter">🏰</div>
+                <h2>Школа Чародейства и Волшебства Хогвартс</h2>
+                <p class="letter-motto">Draco Dormiens Nunquam Titillandus</p>
+              </div>
+              
+              <div class="letter-body">
+                <p>Директор: Минерва Макгонагалл</p>
+                <br>
+                <p>Уважаемый(ая) <strong id="letter-recipient-name">Студент</strong>,</p>
+                <p>Мы рады сообщить вам, что вы зачислены в Школу Чародейства и Волшебства Хогвартс. Распределяющая шляпа определила вас на факультет <strong id="letter-house-name">Гриффиндор</strong>.</p>
+                <p>Ваша подписка успешно активирована. Полный цифровой кабинет и учебные материалы первого семестра теперь разблокированы.</p>
+                <p>Пожалуйста, ознакомьтесь с приложенным списком необходимых книг и оборудования.</p>
+                <br>
+                <p>Искренне ваша,</p>
+                <p class="signature">Минерва Макгонагалл</p>
+                <p class="title-signature">Заместитель директора</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-actions" id="success-actions" style="opacity: 0; pointer-events: none;">
+          <h2 class="font-magic">Добро пожаловать в Хогвартс!</h2>
+          <p>Нажмите на письмо выше, чтобы открыть и прочитать его.</p>
+          <button id="go-to-cabinet-btn" class="magic-btn">
+            <span class="btn-text">Войти в личный кабинет</span>
+            <span class="btn-spark"></span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 3.5: PHOTO CAPTURE SCREEN -->
+    <section id="photo-capture-screen" class="view">
+      <div class="photo-capture-container glass-panel">
+        <h2 class="font-magic headline-glow">Магический Снимок</h2>
+        <p class="subtitle">Шляпа почти определилась! Но чтобы завершить зачисление в свитки Хогвартса, необходимо ваше изображение для Студенческого Билета.</p>
+        
+        <div class="photo-capture-box">
+          <div id="inline-photo-preview" class="inline-preview-frame">
+            <div class="preview-placeholder" id="inline-placeholder">
+              <span class="preview-placeholder-icon">🧙‍♂️</span>
+              <p>Снимок не добавлен</p>
+            </div>
+            <video id="video-inline" autoplay playsinline style="display: none;"></video>
+            <canvas id="canvas-inline" style="display: none;"></canvas>
+            <img id="img-inline" src="" style="display: none;" alt="Снимок студента">
+            <div class="camera-lens-glare"></div>
+          </div>
+        </div>
+
+        <div class="photo-capture-controls">
+          <button id="inline-upload-btn" class="nav-btn">
+            <span>📁 Файл с устройства</span>
+          </button>
+          <button id="inline-camera-btn" class="nav-btn next">
+            <span>📷 Включить камеру</span>
+          </button>
+          <button id="inline-snap-btn" class="nav-btn next" style="display: none;">
+            <span>⚡ Сделать снимок</span>
+          </button>
+          <button id="inline-cancel-btn" class="nav-btn" style="display: none;">
+            <span>Отмена</span>
+          </button>
+        </div>
+        
+        <input type="file" id="inline-file-input" accept="image/*" style="display: none;">
+
+        <div class="photo-capture-footer">
+          <button id="photo-submit-btn" class="magic-btn action" disabled>
+            <span class="btn-text">Продолжить распределение ⚡</span>
+            <span class="btn-spark"></span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 Hogwarts Online Academics. Все права защищены.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

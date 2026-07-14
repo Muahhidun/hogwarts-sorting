@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Хогвартс: Мобильная версия (iPhone Mockup)</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 15 C42 20 48 30 40 40 C35 50 25 50 22 60 C20 70 30 75 35 80 C38 82 62 82 65 80 C70 75 80 70 78 60 C75 50 65 50 60 40 C52 30 58 20 50 15 Z' fill='%238b5a2b' stroke='%235c3a21' stroke-width='4' stroke-linejoin='round'/><path d='M10 80 C30 75 70 75 90 80 C80 88 20 88 10 80 Z' fill='%235c3a21' stroke='%233d2516' stroke-width='3'/><path d='M42 66 C45 69 55 69 58 66' fill='none' stroke='%233d2516' stroke-width='4' stroke-linecap='round'/><circle cx='43' cy='56' r='3' fill='%233d2516'/><circle cx='57' cy='56' r='3' fill='%233d2516'/></svg>">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #080810;
+      --font-body: 'Montserrat', sans-serif;
+      --font-title: 'Cinzel', serif;
+      --primary-color: #9d4edd;
+      --primary-glow: rgba(157, 78, 221, 0.4);
+      --secondary-color: #e0aaff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #fff;
+      font-family: var(--font-body);
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(157, 78, 221, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(14, 26, 64, 0.22) 0%, transparent 45%);
+    }
+
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(white, rgba(255,255,255,.05) 1px, transparent 30px);
+      background-size: 200px 200px;
+      opacity: 0.15;
+      z-index: -1;
+    }
+
+    /* Page Layout Split */
+    .page-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 5rem;
+      width: 100%;
+      max-width: 1100px;
+      padding: 2rem;
+      height: 100%;
+    }
+
+    /* Left Column Info */
+    .sidebar-info {
+      flex: 0 0 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .sidebar-info h1 {
+      font-family: var(--font-title);
+      font-size: 2.2rem;
+      line-height: 1.2;
+      letter-spacing: 0.03em;
+      background: linear-gradient(to right, #ffffff, var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .sidebar-info p.tagline {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+
+    /* Glass list of steps */
+    .instructions-box {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 1.5rem;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .instructions-box h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--secondary-color);
+      margin-bottom: 0.25rem;
+    }
+
+    .instructions-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+      color: #d1d5db;
+    }
+
+    .instructions-box li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Lower actions & hints */
+    .hint-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .back-to-full {
+      color: var(--secondary-color);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--secondary-color);
+      align-self: flex-start;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .back-to-full:hover {
+      color: #fff;
+      border-color: #fff;
+      text-shadow: 0 0 8px var(--primary-glow);
+    }
+
+    /* Right Column: iPhone Wrapper & Scaling */
+    .iphone-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      /* Dynamic size computed by JS */
+      width: 375px;
+      height: 812px;
+    }
+
+    .iphone-device {
+      position: absolute;
+      width: 375px;
+      height: 812px;
+      background: #000;
+      border: 12px solid #2e2e3a;
+      border-radius: 48px;
+      box-shadow: 
+        0 30px 60px -15px rgba(0, 0, 0, 0.95),
+        0 0 50px rgba(157, 78, 221, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    /* iPhone Buttons */
+    .iphone-device::before {
+      content: '';
+      position: absolute;
+      left: -15px;
+      top: 140px;
+      width: 3px;
+      height: 50px;
+      background: #3a3a4a;
+      border-radius: 3px 0 0 3px;
+      box-shadow: 0 60px 0 #3a3a4a;
+    }
+
+    .iphone-device::after {
+      content: '';
+      position: absolute;
+      right: -15px;
+      top: 180px;
+      width: 3px;
+      height: 75px;
+      background: #3a3a4a;
+      border-radius: 0 3px 3px 0;
+    }
+
+    /* Dynamic Island */
+    .dynamic-island {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      pointer-events: none;
+    }
+
+    .camera-lens {
+      width: 8px;
+      height: 8px;
+      background: #111;
+      border-radius: 50%;
+      border: 1px solid #222;
+      position: absolute;
+      right: 18px;
+      top: 10px;
+    }
+
+    /* Phone Status Bar */
+    .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 48px;
+      z-index: 90;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 28px 0 28px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #fff;
+      pointer-events: none;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Iframe */
+    .screen-content {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #080810;
+      border-radius: 36px;
+      overflow: hidden;
+    }
+
+    /* Home Indicator */
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 2px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* ==========================================
+       RESPONSIVENESS (SMALLER DESKTOPS / TABLETS)
+       ========================================== */
+
+    @media (max-width: 900px) {
+      body {
+        overflow-y: auto;
+        height: auto;
+      }
+      
+      .page-layout {
+        flex-direction: column;
+        gap: 2.5rem;
+        height: auto;
+        padding: 3rem 1.5rem;
+      }
+
+      .sidebar-info {
+        flex: 1;
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        align-items: center;
+      }
+
+      .back-to-full {
+        align-self: center;
+      }
+      
+      .iphone-container {
+        margin-top: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="stars"></div>
+
+  <div class="page-layout">
+    
+    <div class="sidebar-info">
+      <h1>Мобильный<br>симулятор</h1>
+      <p class="tagline">Интерактивный тест адаптивного опросника-регистрации Хогвартса на виртуальном iPhone 15 Pro.</p>
+      
+      <div class="instructions-box">
+        <h3>Этапы тестирования:</h3>
+        <ul>
+          <li>🧙‍♂️ 1. Пройти опросник (5 шагов)</li>
+          <li>📷 2. Сделать снимок с камеры</li>
+          <li>⚡ 3. Получить зачисление на факультет</li>
+          <li>💳 4. Пройти тест-чекаут подписки</li>
+          <li>✉️ 5. Открыть восковой конверт</li>
+        </ul>
+      </div>
+
+      <div class="hint-container">
+        <p>Эмуляция viewport: 375x812 пикселей.</p>
+        <a href="index.html" class="back-to-full">Полный десктопный режим ↗</a>
+      </div>
+    </div>
+
+    <div class="iphone-container">
+      <div class="iphone-device">
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <div class="status-left">09:41</div>
+          <div class="status-right">
+            <span>📶</span>
+            <span>5G</span>
+            <span>🔋 100%</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Island -->
+        <div class="dynamic-island">
+          <div class="camera-lens"></div>
+        </div>
+
+        <!-- Embedded content -->
+        <iframe class="screen-content" src="index.html"></iframe>
+
+        <!-- Home Bar -->
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function adjustScale() {
+      // Scale based on height only when in row layout (viewport width > 900px)
+      if (window.innerWidth > 900) {
+        const device = document.querySelector('.iphone-device');
+        const container = document.querySelector('.iphone-container');
+        
+        // Give phone 40px margin from top/bottom of the browser window
+        const availableHeight = window.innerHeight - 80;
+        const baseHeight = 812;
+        const baseWidth = 375;
+        
+        const scale = availableHeight / baseHeight;
+        // Limit maximum scale to 1.1x, and minimum scale to 0.45x
+        const finalScale = Math.min(Math.max(scale, 0.45), 1.1);
+        
+        // Update device scale
+        device.style.transform = `scale(${finalScale})`;
+        
+        // Match container physical bounding box to prevent page scrolling!
+        container.style.width = `${baseWidth * finalScale}px`;
+        container.style.height = `${baseHeight * finalScale}px`;
+        
+        // Reset phone absolute positioning offset
+        device.style.top = '0';
+        device.style.left = '0';
+      } else {
+        // Reset scaling on mobile stacked layout
+        const device = document.querySelector('.iphone-device');
+        const container = document.querySelector('.iphone-container');
+        
+        device.style.transform = '';
+        device.style.top = '';
+        device.style.left = '';
+        container.style.width = '';
+        container.style.height = '';
+      }
+    }
+
+    window.addEventListener('load', adjustScale);
+    window.addEventListener('resize', adjustScale);
+  </script>
+
+</body>
+</html>
