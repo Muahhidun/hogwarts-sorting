@@ -1,5 +1,5 @@
 /* ==========================================
-   MONETIZATION MATRIX 22 - COMPLETE 22 MARKETING-DRIVEN LOGIC
+   MONETIZATION MATRIX 22 - COMPLETE LOGIC & SELECTION FIXES
    ========================================== */
 
 let audioCtx = null;
@@ -54,8 +54,16 @@ let currentModelId = 'subscription';
 // Active state values for widgets
 let subSelectedPeriod = 'year';
 let seatPackageCount = 10;
-let teamMembers = ['alex@acme.com', 'sarah@acme.com', 'dev.lead@acme.com'];
-let overusageFlexAllowed = true;
+let tokenPackageCount = 2000;
+let razorPackage = '1year';
+
+const subPeriodDetails = {
+  year: { title: '1 Год (12 месяцев)', monthly: '6 000 ₸ / мес', charge: '72 000 ₸' },
+  half: { title: '6 Месяцев', monthly: '7 000 ₸ / мес', charge: '42 000 ₸' },
+  quarter: { title: '3 Месяца', monthly: '9 000 ₸ / мес', charge: '27 000 ₸' },
+  month: { title: '1 Месяц', monthly: '10 000 ₸ / мес', charge: '10 000 ₸' },
+  week: { title: '1 Неделя (Тест)', monthly: '8 000 ₸ / нед', charge: '8 000 ₸' }
+};
 
 const modelsData = [
   // 01: SUBSCRIPTION
@@ -66,7 +74,7 @@ const modelsData = [
     title: 'Subscription (Рекуррентная подписка)',
     icon: '🔁',
     subtitle: 'Маркетинговая линейка периодов подписки (от года к неделе)',
-    desc: 'Классическая подписка с агрессивной маркетинговой упаковкой. Карточки расположены СЛЕВА НАПРАВО — от самого выгодного годового плана (с минимальной пересчитанной ценой в месяц) до короткой недельной пробной подписки.',
+    desc: 'Классическая подписка с маркетинговой упаковкой. Карточки расположены в карусели СЛЕВА НАПРАВО — от самого выгодного годового плана (с минимальной ценой в месяц) до короткой недельной пробной подписки. Нажмите на любую карточку для выбора!',
     formula: 'ARR = Годовой чек + Рекуррентные продления. (LTV = ARPU / Churn)',
     cases: ['Netflix', 'Spotify', 'ChatGPT Plus', 'Duolingo', 'WeDrink POS'],
     pros: 'Высокая конверсия в годовые подписки за счет контраста цен; стабильный предсказуемый MRR/ARR.',
@@ -75,80 +83,84 @@ const modelsData = [
       'Проверить конверсию из пробной недели в полноценную годовую подписку',
       'Оценить уровень оттока (Churn Rate) по каждому периоду отдельно'
     ],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="marketing-hero-banner">
-          <div>
-            <div class="marketing-hero-title">Выберите идеальный план подписки</div>
-            <div class="marketing-hero-sub">Получите неограниченный доступ ко всем возможностям платформы</div>
+    renderWidget: () => {
+      const cur = subPeriodDetails[subSelectedPeriod] || subPeriodDetails.year;
+      return `
+        <div class="simulator-card">
+          <div class="marketing-hero-banner">
+            <div>
+              <div class="marketing-hero-title">Выберите идеальный план подписки</div>
+              <div class="marketing-hero-sub">Прокручивайте карточки влево-вправо и нажмите для выбора!</div>
+            </div>
+            <div class="marketing-savings-badge">🔥 Сэкономьте до 48 000 ₸ при оплате за год</div>
           </div>
-          <div class="marketing-savings-badge">🔥 Сэкономьте до 48 000 ₸ при оплате за год</div>
+
+          <!-- Горизонтальная карусель карточек 4 на 3 -->
+          <div class="marketing-carousel-grid">
+            <div class="marketing-plan-card featured ${subSelectedPeriod === 'year' ? 'active' : ''}" onclick="selectSubPeriod('year')">
+              <div class="marketing-card-badge gold">САМЫЙ ВЫГОДНЫЙ 🔥</div>
+              <div class="plan-card-period">1 Год (12 мес)</div>
+              <div class="plan-card-display-price">6 000 ₸ <span>/ мес</span></div>
+              <div class="plan-card-small-print">Списывается 72 000 ₸ разово за 12 месяцев</div>
+              <ul class="plan-card-features">
+                <li>✓ Экономия 48 000 ₸</li>
+                <li>✓ Все PRO-модули</li>
+                <li>✓ VIP поддержка 24/7</li>
+              </ul>
+            </div>
+
+            <div class="marketing-plan-card ${subSelectedPeriod === 'half' ? 'active' : ''}" onclick="selectSubPeriod('half')">
+              <div class="marketing-card-badge">Скидка -30%</div>
+              <div class="plan-card-period">6 Месяцев</div>
+              <div class="plan-card-display-price">7 000 ₸ <span>/ мес</span></div>
+              <div class="plan-card-small-print">Списывается 42 000 ₸ за 6 месяцев</div>
+              <ul class="plan-card-features">
+                <li>✓ Экономия 18 000 ₸</li>
+                <li>✓ Все PRO-модули</li>
+              </ul>
+            </div>
+
+            <div class="marketing-plan-card ${subSelectedPeriod === 'quarter' ? 'active' : ''}" onclick="selectSubPeriod('quarter')">
+              <div class="plan-card-period">3 Месяца</div>
+              <div class="plan-card-display-price">9 000 ₸ <span>/ мес</span></div>
+              <div class="plan-card-small-print">Списывается 27 000 ₸ за 3 месяца</div>
+              <ul class="plan-card-features">
+                <li>✓ Экономия 3 000 ₸</li>
+              </ul>
+            </div>
+
+            <div class="marketing-plan-card ${subSelectedPeriod === 'month' ? 'active' : ''}" onclick="selectSubPeriod('month')">
+              <div class="plan-card-period">1 Месяц</div>
+              <div class="plan-card-display-price">10 000 ₸ <span>/ мес</span></div>
+              <div class="plan-card-small-print">Стандартная гибкая подписка</div>
+              <ul class="plan-card-features">
+                <li>✓ Без обязательств</li>
+              </ul>
+            </div>
+
+            <div class="marketing-plan-card ${subSelectedPeriod === 'week' ? 'active' : ''}" onclick="selectSubPeriod('week')">
+              <div class="plan-card-period">1 Неделя (Тест)</div>
+              <div class="plan-card-display-price">8 000 ₸ <span>/ нед</span></div>
+              <div class="plan-card-small-print">70% стоимости месяца — тест сервиса</div>
+              <ul class="plan-card-features">
+                <li>✓ Тест на 7 дней</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="receipt-output-box">
+            <div class="receipt-title">Спецификация и детализация счета</div>
+            <div class="receipt-row"><span>Выбранный период:</span> <strong id="sub-period-title">${cur.title}</strong></div>
+            <div class="receipt-row"><span>Эквивалент стоимости в месяц:</span> <strong style="color:var(--secondary-accent);" id="sub-monthly-eq">${cur.monthly}</strong></div>
+            <div class="receipt-row total"><span>Итоговый чек к списанию:</span> <span id="sub-total-charge">${cur.charge}</span></div>
+          </div>
+
+          <button class="sim-action-btn" onclick="triggerSimPayment('Подписка [${cur.title}] успешно оформлена!')">
+            ⚡ Оформить выбранную подписку (${cur.charge})
+          </button>
         </div>
-
-        <div class="marketing-cards-grid">
-          <div class="marketing-plan-card featured ${subSelectedPeriod === 'year' ? 'active' : ''}" onclick="selectSubPeriod('year')">
-            <div class="marketing-card-badge gold">САМЫЙ ВЫГОДНЫЙ 🔥</div>
-            <div class="plan-card-period">1 Год (12 мес)</div>
-            <div class="plan-card-display-price">6 000 ₸ <span>/ мес</span></div>
-            <div class="plan-card-small-print">Списывается 72 000 ₸ разово за 12 месяцев</div>
-            <ul class="plan-card-features">
-              <li>✓ Экономия 48 000 ₸</li>
-              <li>✓ Все PRO-модули</li>
-              <li>✓ VIP поддержка 24/7</li>
-            </ul>
-          </div>
-
-          <div class="marketing-plan-card ${subSelectedPeriod === 'half' ? 'active' : ''}" onclick="selectSubPeriod('half')">
-            <div class="marketing-card-badge">Скидка -30%</div>
-            <div class="plan-card-period">6 Месяцев</div>
-            <div class="plan-card-display-price">7 000 ₸ <span>/ мес</span></div>
-            <div class="plan-card-small-print">Списывается 42 000 ₸ за 6 месяцев</div>
-            <ul class="plan-card-features">
-              <li>✓ Экономия 18 000 ₸</li>
-              <li>✓ Все PRO-модули</li>
-            </ul>
-          </div>
-
-          <div class="marketing-plan-card ${subSelectedPeriod === 'quarter' ? 'active' : ''}" onclick="selectSubPeriod('quarter')">
-            <div class="plan-card-period">3 Месяца</div>
-            <div class="plan-card-display-price">9 000 ₸ <span>/ мес</span></div>
-            <div class="plan-card-small-print">Списывается 27 000 ₸ за 3 месяца</div>
-            <ul class="plan-card-features">
-              <li>✓ Экономия 3 000 ₸</li>
-            </ul>
-          </div>
-
-          <div class="marketing-plan-card ${subSelectedPeriod === 'month' ? 'active' : ''}" onclick="selectSubPeriod('month')">
-            <div class="plan-card-period">1 Месяц</div>
-            <div class="plan-card-display-price">10 000 ₸ <span>/ мес</span></div>
-            <div class="plan-card-small-print">Стандартная подписка</div>
-            <ul class="plan-card-features">
-              <li>✓ Без обязательств</li>
-            </ul>
-          </div>
-
-          <div class="marketing-plan-card ${subSelectedPeriod === 'week' ? 'active' : ''}" onclick="selectSubPeriod('week')">
-            <div class="plan-card-period">1 Неделя (Тест)</div>
-            <div class="plan-card-display-price">8 000 ₸ <span>/ нед</span></div>
-            <div class="plan-card-small-print">70% стоимости месяца — тест сервиса</div>
-            <ul class="plan-card-features">
-              <li>✓ Тест на 7 дней</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="receipt-output-box">
-          <div class="receipt-title">Спецификация платежа</div>
-          <div class="receipt-row"><span>Выбранный период:</span> <strong id="sub-period-title">1 Год (72 000 ₸)</strong></div>
-          <div class="receipt-row"><span>Эквивалент в месяц:</span> <strong style="color:var(--secondary-accent);" id="sub-monthly-eq">6 000 ₸ / мес</strong></div>
-          <div class="receipt-row total"><span>Итого к оплате сейчас:</span> <span id="sub-total-charge">72 000 ₸</span></div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Подписка успешно оформлена!')">
-          ⚡ Оформить подписку с гарантией возврата 14 дней
-        </button>
-      </div>
-    `
+      `;
+    }
   },
 
   // 02: FREEMIUM
@@ -159,7 +171,7 @@ const modelsData = [
     title: 'Freemium (Бесплатный вход + PRO)',
     icon: '🔓',
     subtitle: 'Маркетинговая воронка: продукт бесплатен, пока не упретесь в лимиты',
-    desc: 'Бесплатный тариф привлекает огромный поток клиентов без барьера входа. Как только пользователь активно начинается работать с софтом, он упирается в продуктовые лимиты (Gate Limits) и совершает апгрейд до PRO.',
+    desc: 'Бесплатный тариф привлекает огромный поток клиентов без барьера входа. Как только пользователь активно начинает работать с софтом, он упирается в продуктовые лимиты (Gate Limits) и совершает апгрейд до PRO.',
     formula: 'Конверсия PLG = Платные пользователи PRO / Общая база бесплатников (2-5%)',
     cases: ['Figma', 'Slack', 'Zoom', 'Notion', 'Dropbox'],
     pros: 'Виральный охват, отсутствие затрат на первичную рекламу.',
@@ -224,60 +236,64 @@ const modelsData = [
     title: 'Per Seat (Оплата за сотрудников)',
     icon: '👥',
     subtitle: 'Маркетинговые оптовые пакеты мест (от крупных к мелким)',
-    desc: 'Оплата за каждого сотрудника. Маркетинг выстроен на оптовых скидках: покупать пакет из 10 или 25 мест выгоднее в пересчете на 1 сотрудника.',
+    desc: 'Оплата за каждого сотрудника. Маркетинг выстроен на оптовых скидках: покупать пакет из 10 или 25 мест выгоднее в пересчете на 1 сотрудника. Нажмите на любой пакет для выбора!',
     formula: 'Итоговый чек = Пакет мест × Оптовая цена за 1 место',
     cases: ['Google Workspace', 'Slack', 'Jira', 'HubSpot'],
     pros: 'Автоматический рост чека вместе с расширением штата.',
     risks: 'Передача логинов между сотрудниками.',
     aiValidation: ['Определить оптовые пакеты мест'],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="marketing-hero-banner">
-          <div>
-            <div class="marketing-hero-title">Оптовые пакеты рабочих мест для команд</div>
-            <div class="marketing-hero-sub">Чем больше команда — тем ниже цена за 1 сотрудника!</div>
+    renderWidget: () => {
+      const seatTotals = { 25: '$175 / мес (~78 750 ₸)', 10: '$90 / мес (~40 500 ₸)', 5: '$60 / мес (~27 000 ₸)', 1: '$15 / мес (~6 750 ₸)' };
+      const curTotal = seatTotals[seatPackageCount] || '$90 / мес';
+      return `
+        <div class="simulator-card">
+          <div class="marketing-hero-banner">
+            <div>
+              <div class="marketing-hero-title">Оптовые пакеты рабочих мест для команд</div>
+              <div class="marketing-hero-sub">Чем больше команда — тем ниже цена за 1 сотрудника!</div>
+            </div>
           </div>
+
+          <div class="marketing-carousel-grid">
+            <div class="marketing-plan-card featured ${seatPackageCount === 25 ? 'active' : ''}" onclick="selectSeatPkg(25)">
+              <div class="marketing-card-badge gold">ОПТ -53% 🔥</div>
+              <div class="plan-card-period">Пакет 25 Мест</div>
+              <div class="plan-card-display-price">$7 <span>/ место / мес</span></div>
+              <div class="plan-card-small-print">~$175 / мес за всю компанию</div>
+            </div>
+
+            <div class="marketing-plan-card ${seatPackageCount === 10 ? 'active' : ''}" onclick="selectSeatPkg(10)">
+              <div class="marketing-card-badge">Экономия 40%</div>
+              <div class="plan-card-period">Пакет 10 Мест</div>
+              <div class="plan-card-display-price">$9 <span>/ место / мес</span></div>
+              <div class="plan-card-small-print">~$90 / мес за компанию</div>
+            </div>
+
+            <div class="marketing-plan-card ${seatPackageCount === 5 ? 'active' : ''}" onclick="selectSeatPkg(5)">
+              <div class="plan-card-period">Пакет 5 Мест</div>
+              <div class="plan-card-display-price">$12 <span>/ место / мес</span></div>
+              <div class="plan-card-small-print">~$60 / мес за команду</div>
+            </div>
+
+            <div class="marketing-plan-card ${seatPackageCount === 1 ? 'active' : ''}" onclick="selectSeatPkg(1)">
+              <div class="plan-card-period">1 Место</div>
+              <div class="plan-card-display-price">$15 <span>/ место / мес</span></div>
+              <div class="plan-card-small-print">Стандартная цена за 1 юзера</div>
+            </div>
+          </div>
+
+          <div class="receipt-output-box">
+            <div class="receipt-title">Расчет стоимости выбранного пакета</div>
+            <div class="receipt-row"><span>Выбранный пакет:</span> <strong id="seat-pkg-title">Пакет ${seatPackageCount} Мест</strong></div>
+            <div class="receipt-row total"><span>Общий ежемесячный чек:</span> <span id="seat-pkg-total-usd" style="color:var(--secondary-accent);">${curTotal}</span></div>
+          </div>
+
+          <button class="sim-action-btn" onclick="triggerSimPayment('Командный пакет из ${seatPackageCount} мест оформлен!')">
+            ⚡ Оформить пакет мест (${curTotal})
+          </button>
         </div>
-
-        <div class="marketing-cards-grid">
-          <div class="marketing-plan-card featured ${seatPackageCount === 25 ? 'active' : ''}" onclick="selectSeatPkg(25, 7)">
-            <div class="marketing-card-badge gold">ОПТ -53% 🔥</div>
-            <div class="plan-card-period">Пакет 25 Мест</div>
-            <div class="plan-card-display-price">$7 <span>/ место / мес</span></div>
-            <div class="plan-card-small-print">~$175 / мес за всю компанию</div>
-          </div>
-
-          <div class="marketing-plan-card ${seatPackageCount === 10 ? 'active' : ''}" onclick="selectSeatPkg(10, 9)">
-            <div class="marketing-card-badge">Экономия 40%</div>
-            <div class="plan-card-period">Пакет 10 Мест</div>
-            <div class="plan-card-display-price">$9 <span>/ место / мес</span></div>
-            <div class="plan-card-small-print">~$90 / мес за компанию</div>
-          </div>
-
-          <div class="marketing-plan-card ${seatPackageCount === 5 ? 'active' : ''}" onclick="selectSeatPkg(5, 12)">
-            <div class="plan-card-period">Пакет 5 Мест</div>
-            <div class="plan-card-display-price">$12 <span>/ место / мес</span></div>
-            <div class="plan-card-small-print">~$60 / мес за команду</div>
-          </div>
-
-          <div class="marketing-plan-card ${seatPackageCount === 1 ? 'active' : ''}" onclick="selectSeatPkg(1, 15)">
-            <div class="plan-card-period">1 Место</div>
-            <div class="plan-card-display-price">$15 <span>/ место / мес</span></div>
-            <div class="plan-card-small-print">Стандартная цена</div>
-          </div>
-        </div>
-
-        <div class="receipt-output-box">
-          <div class="receipt-title">Расчет стоимости пакета</div>
-          <div class="receipt-row"><span>Выбранный пакет:</span> <strong id="seat-pkg-title">Пакет 10 Мест ($9 / место)</strong></div>
-          <div class="receipt-row total"><span>Общий ежемесячный чек:</span> <span id="seat-pkg-total-usd">$90 / мес (~40 500 ₸)</span></div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Командный пакет рабочих мест оформлен!')">
-          ⚡ Оформить пакет мест для компании
-        </button>
-      </div>
-    `
+      `;
+    }
   },
 
   // 04: PAY-PER-USE / METERED
@@ -337,7 +353,7 @@ const modelsData = [
     title: 'Razor & Blade (Оборудование за 0 ₸)',
     icon: '🪒',
     subtitle: 'Маркетинговые пакеты расходников (от года к месяцу)',
-    desc: 'При подписке на годовой контракт расходных материалов само терминальное оборудование отдается БЕСПЛАТНО (за 0 ₸).',
+    desc: 'При подписке на годовой контракт расходных материалов само терминальное оборудование отдается БЕСПЛАТНО (за 0 ₸). Нажмите на карточку пакета для выбора!',
     formula: 'Прибыль = Маржа с расходников - Субсидия на оборудование',
     cases: ['Nespresso', 'Gillette', 'HP Instant Ink', 'POS-терминалы'],
     pros: 'Нулевой барьер старта для клиентов.',
@@ -353,29 +369,29 @@ const modelsData = [
           <div class="marketing-savings-badge">🎁 Терминал за 0 ₸</div>
         </div>
 
-        <div class="marketing-cards-grid">
-          <div class="marketing-plan-card featured" onclick="triggerSimPayment('Оформлен годовой комплект! Оборудование 0 ₸')">
+        <div class="marketing-carousel-grid">
+          <div class="marketing-plan-card featured ${razorPackage === '1year' ? 'active' : ''}" onclick="selectRazorPkg('1year')">
             <div class="marketing-card-badge gold">ОБОРУДОВАНИЕ 0 ₸ 🔥</div>
             <div class="plan-card-period">1 Год Комплект</div>
             <div class="plan-card-display-price">14 500 ₸ <span>/ мес</span></div>
             <div class="plan-card-small-print">Терминал в подарок (Экономия 65 000 ₸)</div>
           </div>
 
-          <div class="marketing-plan-card" onclick="triggerSimPayment('Оформлен комплект на 6 месяцев!')">
+          <div class="marketing-plan-card ${razorPackage === '6mon' ? 'active' : ''}" onclick="selectRazorPkg('6mon')">
             <div class="plan-card-period">6 Месяцев</div>
             <div class="plan-card-display-price">16 500 ₸ <span>/ мес</span></div>
             <div class="plan-card-small-print">Терминал за 32 500 ₸ (Скидка 50%)</div>
           </div>
 
-          <div class="marketing-plan-card" onclick="triggerSimPayment('Оформлен 1 месяц')">
+          <div class="marketing-plan-card ${razorPackage === '1mon' ? 'active' : ''}" onclick="selectRazorPkg('1mon')">
             <div class="plan-card-period">1 Месяц</div>
             <div class="plan-card-display-price">18 500 ₸ <span>/ мес</span></div>
             <div class="plan-card-small-print">Терминал выкупается за 65 000 ₸</div>
           </div>
         </div>
 
-        <button class="sim-action-btn" onclick="triggerSimPayment('Заказ оборудования за 0 ₸ оформлен!')">
-          ⚡ Заказать POS-терминал за 0 ₸ с комплектом
+        <button class="sim-action-btn" onclick="triggerSimPayment('Заказ оборудования и комплекта расходников оформлен!')">
+          ⚡ Заказать POS-терминал с комплектом расходников
         </button>
       </div>
     `
@@ -660,54 +676,63 @@ const modelsData = [
     title: 'Prepaid Tokens (Токены Antigravity / Claude)',
     icon: '🪙',
     subtitle: 'Маркетинговые пакеты токенов (от крупных к мелким)',
-    desc: 'Оплата генераций токенами в стиле Claude/Antigravity. Слева расположен самый крупный пакет с максимальной скидкой на 1000 токенов.',
+    desc: 'Оплата генераций токенами в стиле Claude/Antigravity. Слева расположен самый крупный пакет с максимальной скидкой на 1000 токенов. Нажмите на пакет для выбора!',
     formula: 'Доход = Проданные оптовые пакеты токенов',
     cases: ['Claude API', 'Midjourney', 'Depositphotos', 'Twilio'],
     pros: 'Предоплата на счет сервиса; оптовые скидки стимулируют крупный чек.',
     risks: 'Сложность интуитивного пересчета стоимости токенов.',
     aiValidation: ['Показать пересчитанную стоимость 1000 токенов'],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="marketing-hero-banner">
-          <div>
-            <div class="marketing-hero-title">Пакеты токенов для генерации AI</div>
-            <div class="marketing-hero-sub">Покупайте токены оптом и экономьте до 50% на стоимости генераций!</div>
+    renderWidget: () => {
+      const tokenPrices = { 2000: '$20 (~9 000 ₸)', 1000: '$15 (~6 750 ₸)', 500: '$10 (~4 500 ₸)', 100: '$5 (~2 250 ₸)' };
+      const curP = tokenPrices[tokenPackageCount] || '$20 (~9 000 ₸)';
+      return `
+        <div class="simulator-card">
+          <div class="marketing-hero-banner">
+            <div>
+              <div class="marketing-hero-title">Пакеты токенов для генерации AI</div>
+              <div class="marketing-hero-sub">Покупайте токены оптом и экономьте до 50% на стоимости генераций!</div>
+            </div>
           </div>
+
+          <div class="marketing-carousel-grid">
+            <div class="marketing-plan-card featured ${tokenPackageCount === 2000 ? 'active' : ''}" onclick="selectTokenPack(2000)">
+              <div class="marketing-card-badge gold">САМАЯ ВЫГОДНАЯ ЦЕНА 🔥 -50%</div>
+              <div class="plan-card-period">2 000 Токенов</div>
+              <div class="plan-card-display-price">$0.01 <span>/ 1k токенов</span></div>
+              <div class="plan-card-small-print">Разовый платеж $20 (~9 000 ₸)</div>
+            </div>
+
+            <div class="marketing-plan-card ${tokenPackageCount === 1000 ? 'active' : ''}" onclick="selectTokenPack(1000)">
+              <div class="marketing-card-badge">Скидка 25%</div>
+              <div class="plan-card-period">1 000 Токенов</div>
+              <div class="plan-card-display-price">$0.015 <span>/ 1k токенов</span></div>
+              <div class="plan-card-small-print">Разовый платеж $15 (~6 750 ₸)</div>
+            </div>
+
+            <div class="marketing-plan-card ${tokenPackageCount === 500 ? 'active' : ''}" onclick="selectTokenPack(500)">
+              <div class="plan-card-period">500 Токенов</div>
+              <div class="plan-card-display-price">$0.02 <span>/ 1k токенов</span></div>
+              <div class="plan-card-small-print">Разовый платеж $10 (~4 500 ₸)</div>
+            </div>
+
+            <div class="marketing-plan-card ${tokenPackageCount === 100 ? 'active' : ''}" onclick="selectTokenPack(100)">
+              <div class="plan-card-period">100 Токенов</div>
+              <div class="plan-card-display-price">$0.05 <span>/ 1k токенов</span></div>
+              <div class="plan-card-small-print">Стартовый пакет $5 (~2 250 ₸)</div>
+            </div>
+          </div>
+
+          <div class="receipt-output-box">
+            <div class="receipt-row"><span>Выбранный пакет токенов:</span> <strong>${tokenPackageCount} Токенов</strong></div>
+            <div class="receipt-row total"><span>Итого к оплате:</span> <span style="color:var(--secondary-accent);">${curP}</span></div>
+          </div>
+
+          <button class="sim-action-btn" onclick="triggerSimPayment('Пакет из ${tokenPackageCount} токенов зачислен на баланс!')">
+            ⚡ Пополнить баланс токенов (${curP})
+          </button>
         </div>
-
-        <div class="marketing-cards-grid">
-          <div class="marketing-plan-card featured" onclick="selectTokenPack(2000, 20)">
-            <div class="marketing-card-badge gold">САМАЯ ВЫГОДНАЯ ЦЕНА 🔥 -50%</div>
-            <div class="plan-card-period">2 000 Токенов</div>
-            <div class="plan-card-display-price">$0.01 <span>/ 1k токенов</span></div>
-            <div class="plan-card-small-print">Разовый платеж $20 (~9 000 ₸)</div>
-          </div>
-
-          <div class="marketing-plan-card" onclick="selectTokenPack(1000, 15)">
-            <div class="marketing-card-badge">Скидка 25%</div>
-            <div class="plan-card-period">1 000 Токенов</div>
-            <div class="plan-card-display-price">$0.015 <span>/ 1k токенов</span></div>
-            <div class="plan-card-small-print">Разовый платеж $15 (~6 750 ₸)</div>
-          </div>
-
-          <div class="marketing-plan-card" onclick="selectTokenPack(500, 10)">
-            <div class="plan-card-period">500 Токенов</div>
-            <div class="plan-card-display-price">$0.02 <span>/ 1k токенов</span></div>
-            <div class="plan-card-small-print">Разовый платеж $10 (~4 500 ₸)</div>
-          </div>
-
-          <div class="marketing-plan-card" onclick="selectTokenPack(100, 5)">
-            <div class="plan-card-period">100 Токенов</div>
-            <div class="plan-card-display-price">$0.05 <span>/ 1k токенов</span></div>
-            <div class="plan-card-small-print">Стартовый пакет $5 (~2 250 ₸)</div>
-          </div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Пакет токенов зачислен на баланс!')">
-          ⚡ Пополнить баланс токенов
-        </button>
-      </div>
-    `
+      `;
+    }
   },
 
   // 13: LIFETIME ACCESS
@@ -773,7 +798,7 @@ const modelsData = [
           <div class="marketing-savings-badge">👑 Vetting Approved</div>
         </div>
 
-        <div class="marketing-cards-grid">
+        <div class="marketing-carousel-grid">
           <div class="marketing-plan-card featured" onclick="triggerSimPayment('Вступили в клуб на 1 Год со скидкой 40%!')">
             <div class="marketing-card-badge gold">СКИДКА -40% 🔥</div>
             <div class="plan-card-period">1 Год Клуба</div>
@@ -851,7 +876,7 @@ const modelsData = [
           </div>
         </div>
 
-        <div class="marketing-cards-grid">
+        <div class="marketing-carousel-grid">
           <div class="marketing-plan-card featured" onclick="triggerSimPayment('Priority Pass Turbo активирован!')">
             <div class="marketing-card-badge gold">VIP СКОРОСТЬ 0.3 СЕК 🔥</div>
             <div class="plan-card-period">Priority Pass</div>
@@ -977,7 +1002,7 @@ const modelsData = [
           </div>
         </div>
 
-        <div class="marketing-cards-grid">
+        <div class="marketing-carousel-grid">
           <div class="marketing-plan-card featured" onclick="triggerSimPayment('Годовой доступ к аналитическому терминалу активирован!')">
             <div class="marketing-card-badge gold">ГОДОВОЙ ТЕРМИНАЛ 🔥</div>
             <div class="plan-card-period">Годовой B2B Доступ</div>
@@ -1055,7 +1080,7 @@ const modelsData = [
           </div>
         </div>
 
-        <div class="marketing-cards-grid">
+        <div class="marketing-carousel-grid">
           <div class="marketing-plan-card featured" onclick="triggerSimPayment('Platinum Спонсорство активировано!')">
             <div class="marketing-card-badge gold">PLATINUM SPONSOR 🔥</div>
             <div class="plan-card-period">Platinum Пакет</div>
@@ -1227,23 +1252,33 @@ function loadModel(modelId) {
   `;
 }
 
-// Widget Handlers
+// Widget Handlers with Dynamic Selection Fixes
 function selectSubPeriod(period) {
   playClick();
   subSelectedPeriod = period;
   loadModel('subscription');
 }
 
-function selectSeatPkg(seats, rate) {
+function selectSeatPkg(seats) {
   playClick();
   seatPackageCount = seats;
   loadModel('per-seat');
 }
 
+function selectTokenPack(tokens) {
+  playClick();
+  tokenPackageCount = tokens;
+  loadModel('prepaid-credits');
+}
+
+function selectRazorPkg(pkg) {
+  playClick();
+  razorPackage = pkg;
+  loadModel('razor-blade');
+}
+
 function updatePpuFlexCalc() {
   const reqVal = document.getElementById('ppu-req-slider').value;
-  const allowFlex = document.getElementById('flex-allow-check').checked;
-
   document.getElementById('ppu-req-display').textContent = `${parseInt(reqVal).toLocaleString()} запросов`;
   document.getElementById('flex-min-total').textContent = `$${((reqVal / 1000) * 0.2).toFixed(2)} / мес`;
 }
@@ -1278,11 +1313,6 @@ function updateAdsMktCalc() {
   document.getElementById('ads-mkt-net').textContent = `${net.toLocaleString()} ₸ / мес`;
 }
 
-function selectTokenPack(tokens, price) {
-  playClick();
-  loadModel('prepaid-credits');
-}
-
 function setPwywVal(val) {
   playClick();
   document.getElementById('pwyw-btn-val').textContent = `${val.toLocaleString()} ₸`;
@@ -1298,7 +1328,7 @@ function triggerSimPayment(msg) {
   const title = currentModel ? currentModel.title.split('(')[0] : 'Оплата услуги';
   
   let amount = '24 900 ₸';
-  const priceEl = document.querySelector('.plan-card-display-price') || document.querySelector('#sub-total-charge') || document.querySelector('#seat-pkg-total-usd') || document.querySelector('#sf-wolt-fee');
+  const priceEl = document.querySelector('#sub-total-charge') || document.querySelector('#seat-pkg-total-usd') || document.querySelector('.plan-card-display-price') || document.querySelector('#sf-wolt-fee');
   if (priceEl) amount = priceEl.textContent.trim();
 
   document.getElementById('checkout-item-name').textContent = `Модель: ${title}`;
