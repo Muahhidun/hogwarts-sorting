@@ -1321,9 +1321,75 @@ function setPwywVal(val) {
   document.getElementById('pwyw-btn-val').textContent = `${val.toLocaleString()} ₸`;
 }
 
+let pendingSimMsg = '';
+
 function triggerSimPayment(msg) {
-  playChime(880, 0.3);
-  showToast(`✅ ${msg}`);
+  playClick();
+  pendingSimMsg = msg;
+
+  const currentModel = modelsData.find(m => m.id === currentModelId);
+  const title = currentModel ? currentModel.title.split('(')[0] : 'Оплата услуги';
+  
+  let amount = '24 900 ₸';
+  const priceEl = document.querySelector('.tier-price') || document.querySelector('#sub-final-total') || document.querySelector('#seat-calc-total') || document.querySelector('#metered-total-cost') || document.querySelector('#sf-service-fee');
+  if (priceEl) amount = priceEl.textContent.trim();
+
+  document.getElementById('checkout-item-name').textContent = `Модель: ${title}`;
+  document.getElementById('checkout-amount-val').textContent = amount;
+  document.getElementById('checkout-btn-amount').textContent = amount;
+
+  document.getElementById('checkout-modal-overlay').style.display = 'flex';
+}
+
+function closeCheckoutModal() {
+  playClick();
+  document.getElementById('checkout-modal-overlay').style.display = 'none';
+}
+
+function setPayMethod(method) {
+  playClick();
+  document.getElementById('tab-card').classList.toggle('active', method === 'card');
+  document.getElementById('tab-b2b').classList.toggle('active', method === 'b2b');
+
+  document.getElementById('pay-form-card').style.display = method === 'card' ? 'flex' : 'none';
+  document.getElementById('pay-form-b2b').style.display = method === 'b2b' ? 'flex' : 'none';
+}
+
+function formatCardNumber(input) {
+  let value = input.value.replace(/\D/g, '');
+  value = value.match(/.{1,4}/g)?.join(' ') || '';
+  input.value = value.substring(0, 19);
+
+  const brandTag = document.getElementById('card-brand-icon');
+  if (value.startsWith('5')) {
+    brandTag.textContent = 'MC';
+    brandTag.style.background = '#eb001b';
+  } else {
+    brandTag.textContent = 'VISA';
+    brandTag.style.background = '#3b82f6';
+  }
+}
+
+function formatCardExp(input) {
+  let value = input.value.replace(/\D/g, '');
+  if (value.length >= 2) {
+    value = value.substring(0, 2) + '/' + value.substring(2, 4);
+  }
+  input.value = value.substring(0, 5);
+}
+
+function submitCheckoutPayment() {
+  const btn = document.getElementById('checkout-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Проведение 3D-Secure платежа...';
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Подтвердить и оплатить';
+    closeCheckoutModal();
+    playChime(880, 0.35);
+    showToast(`✅ ${pendingSimMsg || 'Транзакция успешно проведена!'}`);
+  }, 1200);
 }
 
 function showToast(msg) {

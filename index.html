@@ -73,7 +73,80 @@
       </div>
     </aside>
 
-  </main>
+  <!-- ENTERPRISE CHECKOUT SIMULATION MODAL -->
+  <div id="checkout-modal-overlay" class="checkout-modal-overlay" style="display: none;">
+    <div class="checkout-modal">
+      <div class="checkout-modal-header">
+        <div>
+          <h3 class="checkout-modal-title">Безопасный эквайринг Stripe / B2B Pay</h3>
+          <p class="checkout-modal-sub" id="checkout-item-name">Оплата подписки Business PRO</p>
+        </div>
+        <button class="checkout-close-btn" onclick="closeCheckoutModal()">&times;</button>
+      </div>
+
+      <div class="checkout-modal-body">
+        <!-- Payment Method Tabs -->
+        <div class="pay-method-tabs">
+          <button class="pay-tab active" id="tab-card" onclick="setPayMethod('card')">💳 Банковская карта</button>
+          <button class="pay-tab" id="tab-b2b" onclick="setPayMethod('b2b')">🏢 Безналичный счет</button>
+        </div>
+
+        <!-- Card Payment Form -->
+        <div id="pay-form-card" class="pay-form-section">
+          <div class="control-group">
+            <label class="control-label">Номер карты:</label>
+            <div class="card-input-wrap">
+              <input type="text" id="card-number-input" placeholder="4111 1111 1111 1111" value="4111 2222 3333 4444" maxlength="19" oninput="formatCardNumber(this)">
+              <span id="card-brand-icon" class="card-brand-tag">VISA</span>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="control-group">
+              <label class="control-label">Срок действия:</label>
+              <input type="text" id="card-exp-input" placeholder="12/28" value="12/28" maxlength="5" oninput="formatCardExp(this)">
+            </div>
+            <div class="control-group">
+              <label class="control-label">CVC / CWW:</label>
+              <input type="password" id="card-cvc-input" placeholder="•••" value="888" maxlength="3">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Имя на карте:</label>
+            <input type="text" id="card-name-input" placeholder="ALEXANDER PETROV" value="ALEXANDER PETROV" style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <!-- B2B Invoice Form -->
+        <div id="pay-form-b2b" class="pay-form-section" style="display: none;">
+          <div class="control-group">
+            <label class="control-label">Наименование компании / БИН:</label>
+            <input type="text" placeholder="ТОО 'Acme Enterprise' / БИН 210440029102" value="ТОО 'WeDrink Enterprise' / БИН 210440029102">
+          </div>
+          <div class="control-group">
+            <label class="control-label">Расчетный счет (IBAN):</label>
+            <input type="text" placeholder="KZ889260192830192830" value="KZ889260192830192830">
+          </div>
+          <div class="control-group">
+            <label class="control-label">Email для отправки счета и ЭСФ:</label>
+            <input type="email" placeholder="accounting@acme-corp.com" value="accounting@wedrink.kz">
+          </div>
+        </div>
+
+        <div class="checkout-amount-bar">
+          <span>Сумма к списанию:</span>
+          <strong id="checkout-amount-val" style="color: var(--secondary-accent); font-size: 1.15rem;">24 900 ₸</strong>
+        </div>
+      </div>
+
+      <div class="checkout-modal-footer">
+        <button id="checkout-submit-btn" class="sim-action-btn" style="width: 100%;" onclick="submitCheckoutPayment()">
+          ⚡ Подтвердить и оплатить (<span id="checkout-btn-amount">24 900 ₸</span>)
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
