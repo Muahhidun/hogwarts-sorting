@@ -1,1104 +1,1114 @@
 /* ==========================================
-   STATE MANAGEMENT
+   MONETIZATION MATRIX 22 - CORE JAVASCRIPT
    ========================================== */
 
-let state = {
-  userName: '',
-  currentStep: 0, // 0 is welcome, 1-5 is quiz questions, 6 is sorting ceremony, 7 is results, 8 is payment, 9 is success
-  currentBranch: null, // 'light', 'shadow', 'wisdom'
-  selectedOptionIndex: null,
-  answers: [], // history of choices { questionText, selectedOptionIndex, points }
-  sortedHouse: null,
-  selectedTier: 'monthly', // default tier
-  scores: {
-    gryffindor: 0,
-    slytherin: 0,
-    ravenclaw: 0,
-    hufflepuff: 0
-  }
-};
-
-/* ==========================================
-   AUDIO SYNTHESIZER (WEB AUDIO API)
-   ========================================== */
-
+// Web Audio API Synthesizer
 let audioCtx = null;
-let ambientOsc = null;
-let ambientOsc2 = null;
-let ambientGain = null;
-let isMuted = true;
+let soundEnabled = true;
 
 function initAudio() {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    
-    audioCtx = new AudioContextClass();
-    
-    // Wind sound generator (Low triangle + resonant lowpass filter)
-    ambientOsc = audioCtx.createOscillator();
-    ambientOsc.type = 'triangle';
-    ambientOsc.frequency.setValueAtTime(80, audioCtx.currentTime); // low hum
-    
-    ambientOsc2 = audioCtx.createOscillator();
-    ambientOsc2.type = 'sine';
-    ambientOsc2.frequency.setValueAtTime(120, audioCtx.currentTime); // high fifth hum
-    
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(200, audioCtx.currentTime);
-    filter.Q.setValueAtTime(3, audioCtx.currentTime);
-    
-    // Modulator for slow magic sweeping frequency filter
-    const modulator = audioCtx.createOscillator();
-    modulator.type = 'sine';
-    modulator.frequency.setValueAtTime(0.1, audioCtx.currentTime); // 10s cycles
-    
-    const modGain = audioCtx.createGain();
-    modGain.gain.setValueAtTime(80, audioCtx.currentTime);
-    
-    modulator.connect(modGain);
-    modGain.connect(filter.frequency);
-    
-    ambientGain = audioCtx.createGain();
-    ambientGain.gain.setValueAtTime(0, audioCtx.currentTime); // Start muted
-    
-    ambientOsc.connect(filter);
-    ambientOsc2.connect(filter);
-    filter.connect(ambientGain);
-    ambientGain.connect(audioCtx.destination);
-    
-    ambientOsc.start();
-    ambientOsc2.start();
-    modulator.start();
-  } catch (e) {
-    console.warn("AudioContext init failed", e);
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playChime(freq = 587.33, duration = 0.25) { // D5 note default
+  if (!soundEnabled) return;
+  initAudio();
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + duration);
+    
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) {}
+}
+
+function playClick() {
+  if (!soundEnabled) return;
+  initAudio();
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
+    
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.08);
+  } catch (e) {}
+}
+
+// Global State
+let currentCategory = 'all';
+let currentModelId = 'subscription';
+
+// 22 Monetization Models Dataset
+const modelsData = [
+  // CATEGORY 1: SUB & ACCESS
+  {
+    id: 'subscription',
+    num: '01',
+    category: 'sub',
+    title: 'Подписка (Subscription)',
+    icon: '🔁',
+    subtitle: 'Регулярные автосписания (месяц/год) за непрерывный доступ к сервису',
+    desc: 'Пользователь платит фиксированную сумму с равной периодичностью. Обеспечивает предсказуемый MRR/ARR.',
+    formula: 'MRR = Количество подписчиков × Средняя цена подписки (ARPU)',
+    cases: ['Netflix', 'Spotify', 'ChatGPT Plus', 'WeDrink POS'],
+    pros: 'Предсказуемый регулярный доход (MRR), высокий LTV при низком Churn Rate.',
+    risks: 'Высокая стоимость привлечения (CAC), требует постоянной поставки ценности.',
+    aiValidation: [
+      'Оценить уровень оттока (Churn Rate) по аналогичным сервисам в нише',
+      'Проверить готовность платить рекуррентно, а не единоразово',
+      'Рассчитать точку окупаемости CAC за 3-6 месяцев'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Выберите период оплаты:</span>
+            <span class="control-value" id="sub-discount-tag">Скидка -20% при годовой!</span>
+          </div>
+          <div class="tiers-interactive-grid">
+            <div class="interactive-tier-card" onclick="selectSubTier('monthly')">
+              <div class="tier-name">Ежемесячно</div>
+              <div class="tier-price">9 990 ₸ <span>/ мес</span></div>
+              <ul class="tier-features">
+                <li>✓ Полный доступ к модулям</li>
+                <li>✓ Отмена в любой момент</li>
+              </ul>
+            </div>
+            <div class="interactive-tier-card active" onclick="selectSubTier('annual')">
+              <div class="tier-badge">Выгодно 🔥</div>
+              <div class="tier-name">Ежегодно</div>
+              <div class="tier-price">7 990 ₸ <span>/ мес</span></div>
+              <ul class="tier-features">
+                <li>✓ Скидка 20% (95 880 ₸/год)</li>
+                <li>✓ VIP поддержка 24/7</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-title">Имитация автосписания</div>
+          <div class="receipt-row"><span>Выбранный план:</span> <strong id="sub-plan-name">Годовая подписка</strong></div>
+          <div class="receipt-row"><span>Периодичность:</span> <span>Раз в 12 месяцев</span></div>
+          <div class="receipt-row total"><span>Итого к оплате:</span> <span id="sub-total-price">95 880 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Подписка успешно оформлена!')">
+          ⚡ Активировать рекуррентную подписку
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'freemium',
+    num: '02',
+    category: 'sub',
+    title: 'Freemium',
+    icon: '🔓',
+    subtitle: 'Базовый функционал бесплатно, расширенный PRO — по платной подписке',
+    desc: 'Позволяет быстро набрать миллионы пользователей без барьера входа, конвертируя 2-5% в платящих.',
+    formula: 'Доход = Общая база пользователей × Конверсия в PRO (%) × Цена PRO',
+    cases: ['Figma', 'Zoom', 'Duolingo', 'Slack', 'Notion'],
+    pros: 'Нулевой барьер входа, виральный рост, сарафанное радио.',
+    risks: 'Бесплатные пользователи нагружают серверы; сложный баланс ценности Free/PRO.',
+    aiValidation: [
+      'Проверить, достаточно ли ценности в бесплатной версии для лидогенерации',
+      'Валидировать "триггер апгрейда" (какая именно фича заставит платить)',
+      'Убедиться, что конверсия 2-3% перекрывает затраты на 97% бесплатников'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Статус вашего аккаунта:</span>
+            <span class="control-value" id="freemium-status-tag" style="color: #94a3b8;">FREE PLAN</span>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); padding: 1.25rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Базовый экспорт отчётов:</span> <span style="color: #00f5d4;">✓ Доступен</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; opacity: 0.5;" id="pro-feature-row">
+              <span>🔒 AI-Прогноз остатков на складе:</span> <span style="color: #ffd166;">Только в PRO</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" id="freemium-btn" onclick="toggleFreemiumPro()">
+          ⚡ Разблокировать PRO-фичи (14 990 ₸/мес)
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'per-seat',
+    num: '03',
+    category: 'sub',
+    title: 'За рабочее место (Per Seat)',
+    icon: '👥',
+    subtitle: 'Оплата рассчитывается за каждого активного сотрудника или пользователя',
+    desc: 'Стандарт монетизации B2B-софта. По мере роста команды клиента растёт и чек вашей компании.',
+    formula: 'Выручка = Количество мест (Seats) × Ставка за место',
+    cases: ['Google Workspace', 'Jira', 'Asana', 'Salesforce'],
+    pros: 'Естественное увеличение чека (Land & Expand) вместе с ростом бизнеса клиента.',
+    risks: 'Клиенты шеpointсят логины или ограничивают число пользователей ради экономии.',
+    aiValidation: [
+      'Оценить среднее число сотрудников у целевых B2B-клиентов',
+      'Проверить систему защиты от использования одного аккаунта несколькими людьми'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Количество пользователей (мест):</span>
+            <span class="control-value" id="seat-count-display">5 мест</span>
+          </div>
+          <input type="range" class="custom-slider" min="1" max="50" value="5" id="seat-slider" oninput="updateSeatCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Ставка за 1 место:</span> <span>3 500 ₸ / мес</span></div>
+          <div class="receipt-row"><span>Скидка за объём (>10 мест):</span> <span id="seat-discount">0%</span></div>
+          <div class="receipt-row total"><span>Итоговый ежемесячный чек:</span> <span id="seat-total">17 500 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Пакет рабочих мест обновлен!')">
+          ⚡ Оформить подписку на команду
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'lifetime',
+    num: '04',
+    category: 'sub',
+    title: 'Пожизненный доступ (Lifetime Deal)',
+    icon: '♾️',
+    subtitle: 'Одноразовый крупный платёж за навсегда зафиксированный доступ без рекуррентов',
+    desc: 'Отличный способ привлечь быстрый стартовый капитал от ранних последователей на запуске.',
+    formula: 'Разовый доход = Количество лицензий LTD × Высокий чек LTD',
+    cases: ['AppSumo', 'Lifetime SaaS Deals', 'Курсы с вечным доступом'],
+    pros: 'Мгновенный приток Cash Flow на ранней стадии, высокая мотивация ранних фанатов.',
+    risks: 'Отсутствие повторных платежей в будущем при пожизненных обязательствах по серверу.',
+    aiValidation: [
+      'Просчитать лимит количества продаваемых LTD-лицензий',
+      'Убедиться, что стоимость обслуживания клиента на горизонте 3 лет не превысит цену LTD'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div style="background: rgba(255,209,102,0.1); border: 1px solid #ffd166; padding: 0.75rem; border-radius: 10px; font-size: 0.85rem; color: #ffd166; display: flex; justify-content: space-between;">
+            <span>⚡ Специальное предложение:</span> <strong>Осталось 4 из 50 лицензий!</strong>
+          </div>
+          <div class="interactive-tier-card active" style="margin-top: 0.5rem;">
+            <div class="tier-name">Lifetime Unlimited License</div>
+            <div class="tier-price">99 900 ₸ <span>один раз навсегда</span></div>
+            <ul class="tier-features">
+              <li>✓ Вечный доступ ко всем обновлениям</li>
+              <li>✓ Никаких ежемесячных списаний</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Пожизненная лицензия успешно приобретена!')">
+          ⚡ Купить вечный доступ (99 900 ₸)
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'membership',
+    num: '05',
+    category: 'sub',
+    title: 'Членство в клубе (Membership)',
+    icon: '👑',
+    subtitle: 'Плата не просто за софт, а за доступ к комьюнити, связям и закрытым ивентам',
+    desc: 'Ценность основывается на статусе, нетворкинг-сферах и непубличных материалах.',
+    formula: 'Доход = Члены клуба × Стоимость взноса (ежемесячного или ежегодного)',
+    cases: ['Product Masters Club', 'Patreon', 'Soho House', 'YPO'],
+    pros: 'Высокая удерживаемость (Retention) из-за социальных связей и чувства принадлежности.',
+    risks: 'Требует регулярной фасилитации комьюнити и организации ивентов.',
+    aiValidation: [
+      'Оценить ценность нетворкинга для целевой аудитории',
+      'Проверить готовность платить за статус и доступ к экспертам'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="tiers-interactive-grid">
+          <div class="interactive-tier-card active">
+            <div class="tier-badge">VIP Сферы</div>
+            <div class="tier-name">Founder Club Membership</div>
+            <div class="tier-price">25 000 ₸ <span>/ мес</span></div>
+            <ul class="tier-features">
+              <li>✓ Закрытый чат основателей</li>
+              <li>✓ Еженедельные мастермайнды</li>
+              <li>✓ Прямой доступ к инвесторам</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Вы вступили в клуб основателей!')">
+          ⚡ Вступить в клуб
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'paid-cert',
+    num: '06',
+    category: 'sub',
+    title: 'Платная сертификация',
+    icon: '📜',
+    subtitle: 'Сама программа или обучение бесплатны, но официальный диплом/сертификат платный',
+    desc: 'Широко используется в EdTech массовых курсах. Позволяет набрать миллионы студентов.',
+    formula: 'Доход = Бесплатные студенты × Конверсия в сертификат × Цена сертификации',
+    cases: ['Coursera', 'edX', 'AWS Certifications', 'Scrum Alliance'],
+    pros: 'Огромный охват аудитории, понятная ценность для резюме и работодателей.',
+    risks: 'Низкая конверсия в покупку, если сертификат не признан индустрией.',
+    aiValidation: [
+      'Определить ценность сертификата на рынке труда в вашей нише',
+      'Установить барьер прохождения тестов для авторитета диплома'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Прохождение курса:</span> <span style="color: #00f5d4;">БЕСПЛАТНО (0 ₸)</span></div>
+          <div class="receipt-row"><span>Официальный диплом с верификацией:</span> <span>19 900 ₸</span></div>
+          <div class="receipt-row total"><span>Итого за сертификат:</span> <span>19 900 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Сертификат верифицирован и отправлен!')">
+          ⚡ Оплатить верификацию диплома
+        </button>
+      </div>
+    `
+  },
+
+  // CATEGORY 2: USAGE & METERED
+  {
+    id: 'pay-per-use',
+    num: '07',
+    category: 'usage',
+    title: 'Оплата за использование (Pay-Per-Use)',
+    icon: '⚡',
+    subtitle: 'Клиент платит строго за фактически потребленный объём ресурсов или вызовов API',
+    desc: 'Идеальная модель для инфраструктурных сервисов и вычислений. Клиент платит только за то, что потратил.',
+    formula: 'Выручка = Объем потребления (гигабайты / вызовы API / часы) × Тариф за единицу',
+    cases: ['Amazon AWS', 'Twilio', 'OpenAI API', 'Cloudflare'],
+    pros: 'Справедливая ценовая политика; гиганты платят миллионы, стартапы — копейки.',
+    risks: 'Непредсказуемость выручки; клиенты могут бояться скачков чека.',
+    aiValidation: [
+      'Рассчитать себестоимость 1 единицы потребления (Unit Cost)',
+      'Разработать систему алертов порога расходов для клиентов'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Объем вызовов AI API в месяц:</span>
+            <span class="control-value" id="ppu-count">50 000 запросов</span>
+          </div>
+          <input type="range" class="custom-slider" min="1000" max="500000" step="1000" value="50000" id="ppu-slider" oninput="updatePpuCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Цена за 1 000 токенов/запросов:</span> <span>120 ₸</span></div>
+          <div class="receipt-row total"><span>Итого за потребление:</span> <span id="ppu-total">6 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Счет за потребление оплачен!')">
+          ⚡ Пополнить баланс API
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'prepaid-credits',
+    num: '08',
+    category: 'usage',
+    title: 'Предоплаченные кредиты (Prepaid Tokens)',
+    icon: '🪙',
+    subtitle: 'Покупка пакетов внутренней валюты/токенов заранее, списание по мере расхода',
+    desc: 'Обеспечивает предоплату Cash Flow и скрывает психологческое сопротивление прямым тратам.',
+    formula: 'Доход = Количество проданных пакетов кредитов × Цена пакета',
+    cases: ['Midjourney', 'Depositphotos', 'Аркадные автоматы', 'Игровые валюты'],
+    pros: 'Предоплата на ваш счет; часть купленных кредитов никогда не расходуется (Breakage).',
+    risks: 'Необходимость интуитивного пересчета стоимости внутренних кредитов в реальные деньги.',
+    aiValidation: [
+      'Определить оптимальные размеры пакетов кредитов (Small / Medium / Bulk)',
+      'Продумать механику бонусов при покупке больших пакетов'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="tiers-interactive-grid">
+          <div class="interactive-tier-card" onclick="selectCreditBundle(100, 5000)">
+            <div class="tier-name">100 Токенов</div>
+            <div class="tier-price">5 000 ₸</div>
+          </div>
+          <div class="interactive-tier-card active" onclick="selectCreditBundle(500, 20000)">
+            <div class="tier-badge">+20% бесплатно</div>
+            <div class="tier-name">500 Токенов</div>
+            <div class="tier-price">20 000 ₸</div>
+          </div>
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Ваш текущий баланс:</span> <strong style="color:#00f5d4;" id="credit-balance">500 Токенов</strong></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Пакет токенов зачислен на счет!')">
+          ⚡ Купить пакет кредитов
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'razor-blade',
+    num: '09',
+    category: 'usage',
+    title: 'Бритва и лезвие (Razor & Blade)',
+    icon: '🪒',
+    subtitle: 'Продажа базового устройства/платформы с минимальной маржой, маржа на расходниках',
+    desc: 'Классическая бизнес-модель. Привязывает клиента к постоянным закупкам именно ваших материалов.',
+    formula: 'Прибыль = (Доход от базового железа - Затраты) + (Маржа расходника × Частота закупа)',
+    cases: ['Nespresso (кофемашины)', 'Gillette', 'Принтеры HP (картриджи)', 'Игровые консоли'],
+    pros: 'Низкий барьер покупки главного устройства, пожизненный поток доходов от расходников.',
+    risks: 'Появление неофициальных аналогов расходных материалов от сторонних фабрик.',
+    aiValidation: [
+      'Продумать защиту от сторонних аналогов (чипы, патенты, уникальная форма)',
+      'Убедиться в высокой маржинальности расходного элемента'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Базовая кофемашина / POS-терминал:</span> <span style="color:#00f5d4;">12 000 ₸ (По себестоимости)</span></div>
+          <div class="receipt-row"><span>Ежемесячный комплект капсул/чековой ленты:</span> <span>18 500 ₸ (Маржа 70%)</span></div>
+          <div class="receipt-row total"><span>Прибыль за 1 год с клиента:</span> <span>155 400 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Комплект расходников заказан!')">
+          ⚡ Заказать расходные материалы
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'priority-lane',
+    num: '10',
+    category: 'usage',
+    title: 'Приоритет и Скорость (Priority Pass)',
+    icon: '🚀',
+    subtitle: 'Базовый сервис работает в общей очереди, платный — дает мгновенный приоритет',
+    desc: 'Эффективно монетизирует фактор времени и срочности у платящих пользователей.',
+    formula: 'Доход = Срочные клиенты × Надбавка за приоритетный доступ',
+    cases: ['Fast Pass в Диснейленде', 'ChatGPT Turbo GPU', 'Авиалинии (Fast Track)', 'Такси Экспресс'],
+    pros: 'Высокая маржинальность; не ограничивает базовых пользователей, а ускоряет платящих.',
+    risks: 'Если бесплатная очередь слишком медленная — возникает раздражение пользователей.',
+    aiValidation: [
+      'Настроить баланс времени ожидания для бесплатного и VIP каналов',
+      'Проверить готовность бизнеса выполнять гарантии скорости'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="tiers-interactive-grid">
+            <div class="interactive-tier-card">
+              <div class="tier-name">Обычный поток</div>
+              <div class="tier-price">0 ₸</div>
+              <ul class="tier-features">
+                <li>⏱ Время генерации: 45 сек</li>
+                <li>🐢 В общей очереди</li>
+              </ul>
+            </div>
+            <div class="interactive-tier-card active">
+              <div class="tier-badge">SPEED 🔥</div>
+              <div class="tier-name">Priority GPU Pass</div>
+              <div class="tier-price">4 900 ₸ <span>/ мес</span></div>
+              <ul class="tier-features">
+                <li>⚡ Время генерации: 1.2 сек</li>
+                <li>🚀 Выделенные серверы</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Приоритетный доступ активирован!')">
+          ⚡ Перейти на приоритетную скорость
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'rental-lease',
+    num: '11',
+    category: 'usage',
+    title: 'Аренда и Каршеринг (Rental / Lease)',
+    icon: '🚲',
+    subtitle: 'Временное пользование дорогим активом без перехода права собственности',
+    desc: 'Превращает крупные разовые капитальные затраты клиента (CapEx) в мелкие операционные (OpEx).',
+    formula: 'Выручка = Время аренды × Почасовая/посуточная ставка',
+    cases: ['Uber', 'Whoosh (Самокаты)', 'Аренда серверов', 'Аренда оборудования'],
+    pros: 'Доступность дорогих продуктов для массовой аудитории; частые повторные сессии.',
+    risks: 'Амортизация, поломка и износ физических активов; затраты на логистику и обслуживание.',
+    aiValidation: [
+      'Рассчитать срок окупаемости 1 единицы оборудования с учетом износа',
+      'Продумать систему депозитов и страховок от повреждений'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Длительность аренды оборудования:</span>
+            <span class="control-value" id="rental-hours">3 часа</span>
+          </div>
+          <input type="range" class="custom-slider" min="1" max="24" value="3" id="rental-slider" oninput="updateRentalCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Ставка в час:</span> <span>1 500 ₸</span></div>
+          <div class="receipt-row total"><span>Итого за аренду:</span> <span id="rental-total">4 500 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Аренда успешно разблокирована!')">
+          ⚡ Начать аренду
+        </button>
+      </div>
+    `
+  },
+
+  // CATEGORY 3: SUCCESS & B2B
+  {
+    id: 'success-fee',
+    num: '12',
+    category: 'b2b',
+    title: 'Оплата за результат (Success Fee)',
+    icon: '🎯',
+    subtitle: 'Сервис получает процент только от реальной чистой прибыли или сэкономленных денег',
+    desc: 'Абсолютно наивысшая конверсия в продажу. Клиент не рискует ничем: нет результата — нет оплаты.',
+    formula: 'Комиссия = Финансовый эффект клиента (Доход / Экономия) × % Успеха',
+    cases: ['Инвестиционные брокеры', 'CPA-сети', 'Оптимизация налогов/закупок'],
+    pros: 'Нулевой сопротивление при продаже; неограниченный верхний чек при больших успехах.',
+    risks: 'Сложность точного аудита и прозрачного подсчета финансового эффекта у клиента.',
+    aiValidation: [
+      'Создать прозрачную методику замера точки «До» и «После»',
+      'Зафиксировать юридический юридический договор автоматического безакцептного списания'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Сэкономлено на закупках сырья за месяц:</span>
+            <span class="control-value" id="success-saved">1 200 000 ₸</span>
+          </div>
+          <input type="range" class="custom-slider" min="100000" max="5000000" step="50000" value="1200000" id="success-slider" oninput="updateSuccessCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Наша ставка Success Fee:</span> <span>10% от экономии</span></div>
+          <div class="receipt-row total"><span>Ваш чистый профит:</span> <span id="success-client-profit">1 080 000 ₸</span></div>
+          <div class="receipt-row" style="color:#ffd166;"><span>Комиссия сервиса:</span> <strong id="success-fee-amount">120 000 ₸</strong></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Комиссия от профита перечислена!')">
+          ⚡ Оплатить 10% от сэкономленного
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'isa',
+    num: '13',
+    category: 'b2b',
+    title: 'Income Share Agreement (ISA)',
+    icon: '🎓',
+    subtitle: 'Обучение/сервис бесплатно, платите процент от зарплаты только после трудоустройства',
+    desc: 'Революция в сфере образования. Снимает любой страх «не найти работу после курсов».',
+    formula: 'Выплата = Будущая зарплата выпускника × Фиксированный % (например 15%) в течение N месяцев',
+    cases: ['Lambda School', 'Microverse', 'Яндекс Практикум ISA'],
+    pros: 'Огромный поток заявок на вход, идеальное выравнивание интересов школы и студента.',
+    risks: 'Кассовый разрыв (деньги придут через 6-12 месяцев); риск невыплат от недобросовестных выпускников.',
+    aiValidation: [
+      'Оценить реальную конверсию трудоустройства ваших выпускников',
+      'Продумать юридические механизмы скоринга и проверки доходов'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Ваша будущая зарплата после обучения:</span>
+            <span class="control-value" id="isa-salary">600 000 ₸ / мес</span>
+          </div>
+          <input type="range" class="custom-slider" min="200000" max="1500000" step="50000" value="600000" id="isa-slider" oninput="updateIsaCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Первоначальный взнос:</span> <span style="color:#00f5d4;">0 ₸ (БЕСПЛАТНО)</span></div>
+          <div class="receipt-row"><span>Процент по ISA (12 месяцев):</span> <span>15% от дохода</span></div>
+          <div class="receipt-row total"><span>Ежемесячный взнос после оффера:</span> <span id="isa-monthly">90 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Договор ISA успешно подписан!')">
+          ⚡ Подписать договор ISA (0 ₸ сейчас)
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'marketplace-fee',
+    num: '14',
+    category: 'b2b',
+    title: 'Комиссия маркетплейса',
+    icon: '🏪',
+    subtitle: 'Платформа сводит покупателя и продавца, удерживая % с каждой транзакции',
+    desc: 'Классическая модель двухсторонних платформ. Растёт экспоненциально вместе с GMV.',
+    formula: 'Доход = Общий оборот продаж (GMV) × Процент комиссии (Take Rate)',
+    cases: ['Kaspi.kz', 'Wildberries', 'Airbnb', 'App Store (30%)'],
+    pros: 'Огромный масштабируемый потенциал без владения собственными запасами товаров.',
+    risks: 'Проблема «Курицы и яйца» на старте (кого привлекать первыми: продавцов или покупателей?).',
+    aiValidation: [
+      'Рассчитать оптимальный Take Rate, при котором продавцы не уходят в офлайн',
+      'Продумать защиты от проведения сделок в обход платформы'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Объем суммы сделки продавца:</span>
+            <span class="control-value" id="mp-amount">150 000 ₸</span>
+          </div>
+          <input type="range" class="custom-slider" min="10000" max="1000000" step="10000" value="150000" id="mp-slider" oninput="updateMpCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Комиссия платформы (Take Rate 12%):</span> <strong style="color:#ffd166;" id="mp-fee">18 000 ₸</strong></div>
+          <div class="receipt-row total"><span>Продавец получает на руки:</span> <span id="mp-seller">132 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Транзакция проверена и комиссия удержана!')">
+          ⚡ Провести сделку через маркетплейс
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'setup-arr',
+    num: '15',
+    category: 'b2b',
+    title: 'Setup Fee + Подписка',
+    icon: '🛠️',
+    subtitle: 'Разовый дорогой платёж за внедрение и настройку софта + регулярная абонентка',
+    desc: 'Стандарт для B2B Enterprise софта. Внедрение окупает трудозатраты инженеров.',
+    formula: 'Первоначальный чек = Setup Fee (Внедрение) + Первый месяц подписки',
+    cases: ['SAP', 'R-Keeper', '1С Enterprise', 'Сложные CRM'],
+    pros: 'Высокий разовый чек покрывает CAC; клиент "привязывается" и не уходит из-за вложений.',
+    risks: 'Длинный цикл сделки (3-6 месяцев); барьер высокого входа для малого бизнеса.',
+    aiValidation: [
+      'Рассчитать реальную трудоемкость интеграции 1 клиента в человеко-часах',
+      'Проверить возможность стандартизации процесса внедрения'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Разовое внедрение и настройка сервера (Setup Fee):</span> <span>250 000 ₸</span></div>
+          <div class="receipt-row"><span>Ежемесячная лицензия (ARR):</span> <span>25 000 ₸ / мес</span></div>
+          <div class="receipt-row total"><span>Первый платежный чек:</span> <span>275 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Договор внедрения заключен!')">
+          ⚡ Заказать проект внедрения
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'b2b2c',
+    num: '16',
+    category: 'b2b',
+    title: 'B2B2C (Корпоративная оплата)',
+    icon: '🏢',
+    subtitle: 'Платит головной офис или работодатель (B2B), а пользуются конечные сотрудники (C)',
+    desc: 'Позволяет получить тысячи конечных пользователей через подписание всего одного контракта с HR или CEO.',
+    formula: 'Выручка = Корпоративный контракт × Количество филиалов/сотрудников',
+    cases: ['Gympass', 'Страховые ДМС', 'Корпоративный English (Skyeng)', 'WeDrink HQ'],
+    pros: 'Огромный объём пользователей при минимальных затратах на отдел продаж.',
+    risks: 'Зависимость от одного крупного контракта; риск ухода ключевого клиента.',
+    aiValidation: [
+      'Сформулировать ценность для HR/CEO (повышение продуктивности/лояльности)',
+      'Продумать метрики вовлеченности сотрудников для пролонгации контракта'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Заказчик:</span> <span>Головной офис WeDrink (450 точек)</span></div>
+          <div class="receipt-row"><span>Стоимость за 1 точку:</span> <span>4 900 ₸ / мес</span></div>
+          <div class="receipt-row total"><span>Сумма единого госконтракта:</span> <span style="color:#00f5d4;">2 205 000 ₸ / мес</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Корпоративный контракт активирован!')">
+          ⚡ Подписать B2B2C контракт на всю сеть
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'white-label',
+    num: '17',
+    category: 'b2b',
+    title: 'White Label (Лицензирование)',
+    icon: '🏷️',
+    subtitle: 'Продажа готового софта другим компаниям под их собственным брендом и логотипом',
+    desc: 'Клиенты запускают свой сервис за 1 день, а вы получаете регулярные лицензионные отчисления.',
+    formula: 'Доход = Паушальный взнос + Ежемесячные роялти за поддержку',
+    cases: ['White Label банковские карты', 'Конструкторы приложений', 'Франшизы софта'],
+    pros: 'Клиент сам занимается маркетингом и продажами, вы продаете чисто технологическое ядро.',
+    risks: 'Размытие прямого контакта с конечным пользователем; требования к отказоустойчивости.',
+    aiValidation: [
+      'Создать гибкую систему кастомизации брендинга (White Label Panel)',
+      'Определить уровень SLA и технической поддержки партнёров'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Лицензия White Label (Ваш бренд и домен):</span> <span>500 000 ₸</span></div>
+          <div class="receipt-row"><span>Ежемесячная техподдержка сервера:</span> <span>50 000 ₸ / мес</span></div>
+          <div class="receipt-row total"><span>Итого за запуск своего софта:</span> <span>550 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('White Label лицензия сгенерирована!')">
+          ⚡ Запустить сервис под своим брендом
+        </button>
+      </div>
+    `
+  },
+
+  // CATEGORY 4: ALTERNATIVE & GROWTH
+  {
+    id: 'hidden-revenue',
+    num: '18',
+    category: 'alt',
+    title: 'Скрытые доходы (Ads / Hidden Revenue)',
+    icon: '👁️',
+    subtitle: 'Пользователь не платит за продукт ничего. За него платят рекламодатели или спонсоры',
+    desc: 'Фундаментальная модель гигантов интернета. Требует многомиллионной аудитории.',
+    formula: 'Доход = Количество показов (CPM) / Кликов (CPC) × Ставка рекламодателя',
+    cases: ['Google Search', 'Facebook / Meta', 'TikTok', 'Бесплатные мобильные игры'],
+    pros: 'Абсолютно взрывной рос пользователей из-за отсутствия какого-либо чека.',
+    risks: 'Конфликт интересов: ухудшение UX пользователей из-за навязчивой рекламы.',
+    aiValidation: [
+      'Оценить необходимый объем DAU/MAU для выхода на окупаемость',
+      'Проверить рекламную емкость интерфейса (сколько баннеров выдержит пользователь)'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Ежемесячный трафик приложения:</span>
+            <span class="control-value" id="ads-views">250 000 просмотров</span>
+          </div>
+          <input type="range" class="custom-slider" min="10000" max="1000000" step="10000" value="250000" id="ads-slider" oninput="updateAdsCalc(this.value)">
+        </div>
+
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Средний eCPM (Цена за 1000 показов):</span> <span>1 800 ₸</span></div>
+          <div class="receipt-row total"><span>Выручка от рекламодателей:</span> <span id="ads-total" style="color:#00f5d4;">450 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Рекламная выплата зачислена!')">
+          ⚡ Симулировать выплатную рекламную сессию
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'data-monetization',
+    num: '19',
+    category: 'alt',
+    title: 'Продажа данных и Аналитики',
+    icon: '📊',
+    subtitle: 'Агрегация и обезличивание данных пользователей для продажи аналитических отчетов B2B',
+    desc: 'Превращает сырые пользовательские действия в ценнейшую аналитику рыночных трендов.',
+    formula: 'Доход = Продажи подписок на аналитические отчеты / API данных B2B клиентам',
+    cases: ['2GIS Analytics', 'Foursquare Data', 'Nielsen', 'Financial Terminal Data'],
+    pros: 'Пассивный высокомаржинальный доход поверх основного действующего сервиса.',
+    risks: 'Строгие требования GDPR / Законов о персональных данных; риск репутационных потерь.',
+    aiValidation: [
+      'Убедиться в 100% анонимизации и агрегации пользовательских данных',
+      'Определить B2B-покупателей, готовых платить за исследования этого рынка'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>База данных:</span> <span>Обезличенная аналитика чеков 500 кофеен</span></div>
+          <div class="receipt-row"><span>Покупатель:</span> <span>Инвестиционный фонд / Поставщик молочной продукции</span></div>
+          <div class="receipt-row total"><span>Стоимость квартального отчета:</span> <span style="color:#ffd166;">850 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Аналитический отчет успешно продан!')">
+          ⚡ Выгрузить B2B аналитический отчет
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'app-marketplace',
+    num: '20',
+    category: 'alt',
+    title: 'Магазин дополнений (App Marketplace)',
+    icon: '🧩',
+    subtitle: 'Платформа предоставляет ядро, а сторонние разработчики создают плагины и платят %',
+    desc: 'Превращает ваш продукт в нерушимую экосистему, которую невозможно сместить с рынка.',
+    formula: 'Доход = Продажи сторонних плагинов × Доля платформы (30%)',
+    cases: ['Shopify App Store', 'WordPress Plugins', 'Salesforce AppExchange', 'Chrome Web Store'],
+    pros: 'Внешние разработчики сами расширяют ваш софт бесплатно для вас.',
+    risks: 'Требуется создание открытых API, документации и привлечение комьюнити девелоперов.',
+    aiValidation: [
+      'Разработать безопасный API и SDK для внешних разработчиков',
+      'Продумать систему модерации и распределения доходов 70/30'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Продажи плагина "Telegram-Бот Заказов" (100 скачиваний):</span> <span>500 000 ₸</span></div>
+          <div class="receipt-row"><span>Комиссия нашей платформы (30%):</span> <strong style="color:#00f5d4;">150 000 ₸</strong></div>
+          <div class="receipt-row total"><span>Выплата разработчику плагина:</span> <span>350 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Продажа плагина проведена!')">
+          ⚡ Симулировать покупку плагина в App Store
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'sponsorship',
+    num: '21',
+    category: 'alt',
+    title: 'Спонсорство и Брендинг',
+    icon: '🎗️',
+    subtitle: 'Крупный бренд полностью субсидирует сервис взамен на эксклюзивную интеграцию',
+    desc: 'Подходит для нишевых медиа, хакатонов, полезных бесплатных утилит для профи.',
+    formula: 'Доход = Генеральный спонсорский контракт на фиксированный срок',
+    cases: ['Хакатоны (Powered by RedBull)', 'Спецпроекты VC.ru', 'Бесплатные Wi-Fi сети'],
+    pros: 'Крупные чеки сразу; пользователю не нужно платить из своего кармана.',
+    risks: 'Сложность поиска спонсоров; зависимость от маркетинговых бюджетов партнеров.',
+    aiValidation: [
+      'Сформулировать охваты и точность попадания в целевую аудиторию спонсора',
+      'Создать медиакит с метриками вовлечения'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Спонсор:</span> <span>Бренд напитков / Платежная система</span></div>
+          <div class="receipt-row"><span>Формат:</span> <span>Эксклюзивный логотип + Интеграция в Push</span></div>
+          <div class="receipt-row total"><span>Спонсорский пакет (Квартал):</span> <span>1 500 000 ₸</span></div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Спонсорский контракт подписан!')">
+          ⚡ Активировать спонсорский пакет
+        </button>
+      </div>
+    `
+  },
+  {
+    id: 'pay-what-you-want',
+    num: '22',
+    category: 'alt',
+    title: 'Pay What You Want (Donation)',
+    icon: '🎁',
+    subtitle: 'Пользователь сам выбирает платить ли ему вообще и какую сумму пожертвовать',
+    desc: 'Работает на сильной эмоциональной связи, краудфандинге и благодарности за полезность.',
+    formula: 'Доход = Количество пользователей × Средний чек доната (Tip)',
+    cases: ['Wikipedia', 'Radiohead (Альбом In Rainbows)', 'Humble Bundle', 'Buy Me a Coffee'],
+    pros: 'Высочайшая лояльность сообщества; полное отсутствие юридического барьера покупки.',
+    risks: 'Нестабильность доходов; большая часть пользователей выбирает платить 0.',
+    aiValidation: [
+      'Настроить триггерные экраны благодарности с рекомендуемыми пресетами (500 ₸, 2000 ₸)',
+      'Проверить эффект социализации (публичное упоминание щедрых донатеров)'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="control-group">
+          <div class="control-label">
+            <span>Выберите сумму доната/благодарности:</span>
+            <span class="control-value" id="pwyw-custom-val">2 000 ₸</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <button class="model-pill" onclick="setPwywVal(500)">500 ₸ ☕</button>
+            <button class="model-pill active" onclick="setPwywVal(2000)">2 000 ₸ 🍕</button>
+            <button class="model-pill" onclick="setPwywVal(5000)">5 000 ₸ 🚀</button>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" style="background: linear-gradient(135deg, #00f5d4, #00bb9b); color: #000;" onclick="triggerSimPayment('Огромное спасибо за поддержку проекта! ❤️')">
+          ❤️ Отправить донат (<span id="pwyw-btn-val">2 000 ₸</span>)
+        </button>
+      </div>
+    `
+  }
+];
+
+// App Navigation & Rendering Engine
+function initApp() {
+  renderCategoryTabs();
+  renderModelPills();
+  loadModel('subscription');
+}
+
+function renderCategoryTabs() {
+  const container = document.getElementById('category-bar');
+  const categories = [
+    { id: 'all', label: '⚡ Все 22 модели' },
+    { id: 'sub', label: '💳 Подписки и Доступ' },
+    { id: 'usage', label: '⚡ Объём и Usage' },
+    { id: 'b2b', label: '🤝 Результат & B2B' },
+    { id: 'alt', label: '🎁 Альтернативные' }
+  ];
+
+  container.innerHTML = categories.map(c => `
+    <button class="category-tab ${c.id === currentCategory ? 'active' : ''}" onclick="filterCategory('${c.id}')">
+      ${c.label}
+    </button>
+  `).join('');
+}
+
+function filterCategory(catId) {
+  playClick();
+  currentCategory = catId;
+  renderCategoryTabs();
+  renderModelPills();
+}
+
+function renderModelPills() {
+  const container = document.getElementById('models-scroll-bar');
+  const filtered = currentCategory === 'all' 
+    ? modelsData 
+    : modelsData.filter(m => m.category === currentCategory);
+
+  container.innerHTML = filtered.map(m => `
+    <button class="model-pill ${m.id === currentModelId ? 'active' : ''}" onclick="loadModel('${m.id}')">
+      <span class="model-number">${m.num}</span>
+      <span>${m.icon} ${m.title.split('(')[0]}</span>
+    </button>
+  `).join('');
+}
+
+function loadModel(modelId) {
+  playClick();
+  currentModelId = modelId;
+  const model = modelsData.find(m => m.id === modelId);
+  if (!model) return;
+
+  renderModelPills();
+
+  // Render Left Panel: Visual Stage
+  const stageHeader = document.getElementById('stage-header');
+  stageHeader.innerHTML = `
+    <div class="model-title-wrap">
+      <div class="model-icon-box">${model.icon}</div>
+      <div>
+        <h2 class="model-title">#${model.num} — ${model.title}</h2>
+        <p class="model-subtitle">${model.subtitle}</p>
+      </div>
+    </div>
+  `;
+
+  const stageBody = document.getElementById('stage-body');
+  stageBody.innerHTML = model.renderWidget();
+
+  // Render Right Panel: Sidebar Information
+  const sidebarTitle = document.getElementById('sidebar-title');
+  sidebarTitle.innerHTML = `<span>💡</span> Разбор: ${model.title.split('(')[0]}`;
+
+  const sidebarBody = document.getElementById('sidebar-body');
+  sidebarBody.innerHTML = `
+    <div class="info-card-block">
+      <div class="info-block-title">📌 Суть и принцип работы</div>
+      <p class="info-block-text">${model.desc}</p>
+    </div>
+
+    <div class="info-card-block">
+      <div class="info-block-title">📐 Формула Unit-экономики</div>
+      <div class="formula-box">${model.formula}</div>
+    </div>
+
+    <div class="info-card-block">
+      <div class="info-block-title">🏢 Где применяется в мире</div>
+      <div class="example-tags-wrap">
+        ${model.cases.map(c => `<span class="example-tag">${c}</span>`).join('')}
+      </div>
+    </div>
+
+    <div class="info-card-block">
+      <div class="info-block-title" style="color: #00f5d4;">👍 Главный плюс</div>
+      <p class="info-block-text" style="color: #e2e8f0;">${model.pros}</p>
+    </div>
+
+    <div class="info-card-block">
+      <div class="info-block-title" style="color: #ff6b6b;">⚠️ Ключевой риск</div>
+      <p class="info-block-text" style="color: #cbd5e1;">${model.risks}</p>
+    </div>
+
+    <div class="ai-validation-box">
+      <div class="ai-validation-title">⚡ AI-проверка гипотез</div>
+      <ul class="ai-validation-list">
+        ${model.aiValidation.map(v => `<li>${v}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+// Widget Interactions & Calculations
+function selectSubTier(type) {
+  playClick();
+  const planName = document.getElementById('sub-plan-name');
+  const totalPrice = document.getElementById('sub-total-price');
+  
+  if (type === 'annual') {
+    planName.textContent = 'Годовая подписка (-20%)';
+    totalPrice.textContent = '95 880 ₸';
+  } else {
+    planName.textContent = 'Ежемесячная подписка';
+    totalPrice.textContent = '9 990 ₸';
+  }
+}
+
+function toggleFreemiumPro() {
+  playChime(659.25, 0.3);
+  const tag = document.getElementById('freemium-status-tag');
+  const feature = document.getElementById('pro-feature-row');
+  const btn = document.getElementById('freemium-btn');
+
+  if (tag.textContent === 'FREE PLAN') {
+    tag.textContent = 'PRO ACTIVE 🔥';
+    tag.style.color = '#00f5d4';
+    feature.style.opacity = '1';
+    feature.querySelector('span:last-child').textContent = '✓ Разблокировано';
+    feature.querySelector('span:last-child').style.color = '#00f5d4';
+    btn.textContent = '✓ Настройки подписки PRO';
+    showToast('🎉 Все PRO-функции разблокированы!');
+  } else {
+    tag.textContent = 'FREE PLAN';
+    tag.style.color = '#94a3b8';
+    feature.style.opacity = '0.5';
+    feature.querySelector('span:last-child').textContent = 'Только в PRO';
+    feature.querySelector('span:last-child').style.color = '#ffd166';
+    btn.textContent = '⚡ Разблокировать PRO-фичи (14 990 ₸/мес)';
+  }
+}
+
+function updateSeatCalc(val) {
+  playClick();
+  document.getElementById('seat-count-display').textContent = `${val} мест`;
+  const rate = 3500;
+  let discount = 0;
+  if (val > 10) discount = 0.15; // 15% discount for 10+ seats
+  
+  const total = val * rate * (1 - discount);
+  document.getElementById('seat-discount').textContent = `${discount * 100}%`;
+  document.getElementById('seat-total').textContent = `${total.toLocaleString()} ₸`;
+}
+
+function updatePpuCalc(val) {
+  document.getElementById('ppu-count').textContent = `${parseInt(val).toLocaleString()} запросов`;
+  const total = (val / 1000) * 120;
+  document.getElementById('ppu-total').textContent = `${Math.round(total).toLocaleString()} ₸`;
+}
+
+function selectCreditBundle(tokens, price) {
+  playClick();
+  document.getElementById('credit-balance').textContent = `${tokens} Токенов`;
+}
+
+function updateRentalCalc(val) {
+  document.getElementById('rental-hours').textContent = `${val} часа`;
+  const total = val * 1500;
+  document.getElementById('rental-total').textContent = `${total.toLocaleString()} ₸`;
+}
+
+function updateSuccessCalc(val) {
+  document.getElementById('success-saved').textContent = `${parseInt(val).toLocaleString()} ₸`;
+  const fee = val * 0.10;
+  const clientProfit = val - fee;
+  
+  document.getElementById('success-fee-amount').textContent = `${Math.round(fee).toLocaleString()} ₸`;
+  document.getElementById('success-client-profit').textContent = `${Math.round(clientProfit).toLocaleString()} ₸`;
+}
+
+function updateIsaCalc(val) {
+  document.getElementById('isa-salary').textContent = `${parseInt(val).toLocaleString()} ₸ / мес`;
+  const monthly = val * 0.15;
+  document.getElementById('isa-monthly').textContent = `${Math.round(monthly).toLocaleString()} ₸`;
+}
+
+function updateMpCalc(val) {
+  document.getElementById('mp-amount').textContent = `${parseInt(val).toLocaleString()} ₸`;
+  const fee = val * 0.12;
+  const seller = val - fee;
+  
+  document.getElementById('mp-fee').textContent = `${Math.round(fee).toLocaleString()} ₸`;
+  document.getElementById('mp-seller').textContent = `${Math.round(seller).toLocaleString()} ₸`;
+}
+
+function updateAdsCalc(val) {
+  document.getElementById('ads-views').textContent = `${parseInt(val).toLocaleString()} просмотров`;
+  const total = (val / 1000) * 1800;
+  document.getElementById('ads-total').textContent = `${Math.round(total).toLocaleString()} ₸`;
+}
+
+function setPwywVal(val) {
+  playClick();
+  document.getElementById('pwyw-custom-val').textContent = `${val.toLocaleString()} ₸`;
+  document.getElementById('pwyw-btn-val').textContent = `${val.toLocaleString()} ₸`;
+}
+
+function triggerSimPayment(msg) {
+  playChime(880, 0.35); // A5 chime
+  showToast(`✅ ${msg}`);
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.sim-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'sim-toast';
+  toast.innerHTML = msg;
+  document.querySelector('.main-stage').appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
 }
 
 function toggleSound() {
-  if (!audioCtx) {
-    initAudio();
-  }
-  
-  if (!audioCtx) return;
-  
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  
-  const soundToggleBtn = document.getElementById('sound-toggle');
-  const soundOffIcon = soundToggleBtn.querySelector('.icon-sound-off');
-  const soundOnIcon = soundToggleBtn.querySelector('.icon-sound-on');
-  
-  if (isMuted) {
-    // Unmute
-    ambientGain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 1.5);
-    soundOffIcon.style.display = 'none';
-    soundOnIcon.style.display = 'block';
-    isMuted = false;
-    playMagicChime();
-  } else {
-    // Mute
-    ambientGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
-    soundOffIcon.style.display = 'block';
-    soundOnIcon.style.display = 'none';
-    isMuted = true;
-  }
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('sound-toggle');
+  btn.textContent = soundEnabled ? '🔊 Звук: Вкл' : '🔇 Звук: Выкл';
+  if (soundEnabled) playChime();
 }
 
-function playMagicChime() {
-  if (isMuted || !audioCtx) return;
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  
-  const now = audioCtx.currentTime;
-  
-  // High sweet bell chime
-  const osc1 = audioCtx.createOscillator();
-  const gain1 = audioCtx.createGain();
-  osc1.type = 'sine';
-  osc1.frequency.setValueAtTime(659.25, now); // E5
-  osc1.frequency.exponentialRampToValueAtTime(1318.51, now + 0.15); // Arpeggiate to E6
-  gain1.gain.setValueAtTime(0.08, now);
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-  osc1.connect(gain1);
-  gain1.connect(audioCtx.destination);
-  osc1.start(now);
-  osc1.stop(now + 0.8);
-  
-  // Harmonics (perfect fifth)
-  const osc2 = audioCtx.createOscillator();
-  const gain2 = audioCtx.createGain();
-  osc2.type = 'sine';
-  osc2.frequency.setValueAtTime(987.77, now); // B5
-  gain2.gain.setValueAtTime(0.04, now);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-  osc2.connect(gain2);
-  gain2.connect(audioCtx.destination);
-  osc2.start(now);
-  osc2.stop(now + 1.2);
-}
-
-function playSortingHatMumble() {
-  if (isMuted || !audioCtx) return;
-  const now = audioCtx.currentTime;
-  
-  // Generate a low resonant synth vocal-like murmur
-  const osc = audioCtx.createOscillator();
-  const filter = audioCtx.createBiquadFilter();
-  const gain = audioCtx.createGain();
-  
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(90, now);
-  osc.frequency.linearRampToValueAtTime(120, now + 0.1);
-  osc.frequency.linearRampToValueAtTime(95, now + 0.2);
-  
-  filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(400, now);
-  filter.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-  filter.frequency.exponentialRampToValueAtTime(500, now + 0.2);
-  filter.Q.setValueAtTime(4, now);
-  
-  gain.gain.setValueAtTime(0.06, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-  
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-  
-  osc.start(now);
-  osc.stop(now + 0.3);
-}
-
-/* ==========================================
-   QUIZ DATA
-   ========================================== */
-
-const Q1 = {
-  text: "Вы подходите к развилке в Запретном лесу. Какая тропа манит вас сильнее всего?",
-  options: [
-    { text: "Яркая, прогретая солнцем лесная просека", branch: "light", points: { gryffindor: 2, hufflepuff: 1 } },
-    { text: "Узкая тропа, скрытая под покровом таинственного тумана", branch: "shadow", points: { slytherin: 2, ravenclaw: 1 } },
-    { text: "Возвышающаяся тропа, ведущая к звездной обсерватории", branch: "wisdom", points: { ravenclaw: 2, hufflepuff: 1 } }
-  ]
-};
-
-const branchQuestions = {
-  light: [
-    // Q2
-    {
-      text: "Вы видите, как слизеринец заколдовал беззащитного первокурсника. Ваши действия?",
-      options: [
-        { text: "Вступлюсь напрямую, достав палочку и бросив вызов", points: { gryffindor: 3 } },
-        { text: "Быстро вспомню контрзаклинание, освобожу беднягу и отчитаю обидчика", points: { gryffindor: 1, hufflepuff: 3 } }
-      ]
-    },
-    // Q3
-    {
-      text: "Каков ваш самый большой страх перед лицом опасности?",
-      options: [
-        { text: "Оказаться трусом и подвести доверившихся мне людей", points: { gryffindor: 3, hufflepuff: 1 } },
-        { text: "Показать свою несостоятельность и провалить важное испытание", points: { ravenclaw: 2, hufflepuff: 2 } }
-      ]
-    },
-    // Q4
-    {
-      text: "На дуэли ваш противник использует запрещенный прием. Как вы поступите?",
-      options: [
-        { text: "Отвечу тем же заклинанием, чтобы победить во что бы то ни стало", points: { slytherin: 2, gryffindor: 2 } },
-        { text: "Продолжу защищаться строго по правилам, а судье сообщу после боя", points: { hufflepuff: 3, ravenclaw: 1 } }
-      ]
-    },
-    // Q5
-    {
-      text: "Выберите благородный артефакт в подарок от директора:",
-      options: [
-        { text: "Меч Годрика Гриффиндора (сияющая сталь и рубины)", points: { gryffindor: 4 } },
-        { text: "Чаша Пенелопы Пуффендуй (золотой кубок с изображением барсука)", points: { hufflepuff: 4 } }
-      ]
-    }
-  ],
-  shadow: [
-    // Q2
-    {
-      text: "Вы нашли древний свиток с могущественным темным заклинанием. Как вы поступите?",
-      options: [
-        { text: "Изучу его в тайне, чтобы обрести превосходство над возможными врагами", points: { slytherin: 3, ravenclaw: 1 } },
-        { text: "Передам его профессорам, но сначала тайно сделаю для себя копию", points: { slytherin: 2, ravenclaw: 2 } }
-      ]
-    },
-    // Q3
-    {
-      text: "Какова ваша главная цель при обучении в Хогвартсе?",
-      options: [
-        { text: "Получить силу, авторитет и занять ключевые посты в волшебном мире", points: { slytherin: 3, gryffindor: 1 } },
-        { text: "Стать выдающимся стратегом, влияющим на события и заводящим нужные связи", points: { slytherin: 3, ravenclaw: 1 } }
-      ]
-    },
-    // Q4
-    {
-      text: "Вы узнали тайный пароль от Запретной секции библиотеки Хогвартса. Ваши действия?",
-      options: [
-        { text: "Буду проникать туда по ночам для изучения скрытых знаний", points: { slytherin: 2, ravenclaw: 2 } },
-        { text: "Выгодно продам этот пароль другим студентам, любящим риск", points: { slytherin: 4 } }
-      ]
-    },
-    // Q5
-    {
-      text: "Выберите древнюю реликвию из тайного хранилища:",
-      options: [
-        { text: "Кольцо Марволо Мракса (скрывает непостижимую вековую мощь)", points: { slytherin: 4 } },
-        { text: "Медальон Салазара Слизерина (зеленый изумруд и золотая змея)", points: { slytherin: 4 } }
-      ]
-    }
-  ],
-  wisdom: [
-    // Q2
-    {
-      text: "Вы столкнулись со сфинксом, охраняющим сундук. Он предлагает разгадать загадку. Ваши действия?",
-      options: [
-        { text: "С радостью приму интеллектуальный вызов и разгадаю шараду", points: { ravenclaw: 3, hufflepuff: 1 } },
-        { text: "Попробую перехитрить сфинкса, изучив выступы пещеры для обхода", points: { ravenclaw: 1, slytherin: 3 } }
-      ]
-    },
-    // Q3
-    {
-      text: "Где вы предпочитаете проводить свободные часы в Хогвартсе?",
-      options: [
-        { text: "В тишине библиотеки, изучая редкие фолианты и забытые свитки", points: { ravenclaw: 3, hufflepuff: 1 } },
-        { text: "В башне Астрономии, созерцая небеса и размышляя о тайнах вселенной", points: { ravenclaw: 3, gryffindor: 1 } }
-      ]
-    },
-    // Q4
-    {
-      text: "Профессор допустил ошибку в сложной формуле заклинания на уроке. Ваши действия?",
-      options: [
-        { text: "Громко исправлю его перед всей аудиторией, продемонстрировав точность", points: { ravenclaw: 2, slytherin: 2 } },
-        { text: "Тихо и вежливо сообщу ему об этом после занятия, чтобы не подрывать авторитет", points: { hufflepuff: 3, ravenclaw: 1 } }
-      ]
-    },
-    // Q5
-    {
-      text: "Выберите мистический инструмент для работы с тонкими материями:",
-      options: [
-        { text: "Диадема Кандиды Когтевран (дарует ясность мыслей своему носителю)", points: { ravenclaw: 4 } },
-        { text: "Древний Хроноворот (позволяет совершать короткие прыжки во времени)", points: { ravenclaw: 3, gryffindor: 1 } }
-      ]
-    }
-  ]
-};
-
-const housesData = {
-  gryffindor: {
-    name: "Гриффиндор",
-    desc: "Факультет храбрых сердцем, готовых пойти на риск ради защиты справедливости и друзей. Ваша сила — в благородстве, чести и смелости двигаться вперед вопреки страху.",
-    crest: "🦁",
-    watermark: "GRYFFINDOR",
-    class: "theme-gryffindor",
-    patronus: "Серебряный Олень",
-    stats: { defense: 95, potions: 60, creatures: 55 },
-    wand: "Остролист и перо Феникса, 11 дюймов"
-  },
-  slytherin: {
-    name: "Слизерин",
-    desc: "Факультет амбициозных, хитрых и находчивых магов. Вы цените лидерство, самосохранение, силу воли и умение добиваться поставленных целей самым эффективным путем.",
-    crest: "🐍",
-    watermark: "SLYTHERIN",
-    class: "theme-slytherin",
-    patronus: "Призрачный Василиск",
-    stats: { defense: 75, potions: 95, creatures: 45 },
-    wand: "Черное дерево и жила Дракона, 12¾ дюймов"
-  },
-  ravenclaw: {
-    name: "Когтевран",
-    desc: "Факультет мудрых, любознательных и творческих волшебников. Вы стремитесь к неизведанной истине, знаниям и цените индивидуальность и оригинальность мыслей.",
-    crest: "🦅",
-    watermark: "RAVENCLAW",
-    class: "theme-ravenclaw",
-    patronus: "Серебристый Орёл",
-    stats: { defense: 80, potions: 75, creatures: 80 },
-    wand: "Орешник и волос Единорога, 10¾ дюймов"
-  },
-  hufflepuff: {
-    name: "Пуффендуй",
-    desc: "Факультет трудолюбивых, верных и честных магов. Ваши главные ценности — доброта, справедливость, преданность своим друзьям и готовность трудиться на благо всех.",
-    crest: "🦡",
-    watermark: "HUFFLEPUFF",
-    class: "theme-hufflepuff",
-    patronus: "Мягко светящийся Барсук",
-    stats: { defense: 65, potions: 65, creatures: 90 },
-    wand: "Клен и волос Единорога, 11½ дюймов"
-  }
-};
-
-const initialSortingQuotes = [
-  "Хмм... Сложно. Очень сложно...",
-  "Вижу много качеств. И неглупый разум, к тому же...",
-  "Но чтобы вынести вердикт, мне нужен ваш лик для свитков Хогвартса!"
-];
-
-const finalSortingQuotes = [
-  "Прекрасный снимок! Теперь я вижу вас целиком...",
-  "Да... Я вижу твою истинную суть...",
-  "Я готов принять решение..."
-];
-
-/* ==========================================
-   NAVIGATION ENGINE
-   ========================================== */
-
-function navigate(targetViewId, direction = 'forward') {
-  const views = document.querySelectorAll('.view');
-  const targetView = document.getElementById(targetViewId);
-  
-  if (!targetView) return;
-
-  const updateDOM = () => {
-    views.forEach(v => {
-      v.classList.remove('active');
-      v.style.display = 'none';
-    });
-    targetView.style.display = 'block';
-    // Force reflow for transitions to kick in
-    targetView.offsetHeight; 
-    targetView.classList.add('active');
-    
-    // Apply body theme based on state step
-    updateBodyTheme();
-  };
-
-  // Check if browser supports View Transitions API
-  if (document.startViewTransition) {
-    document.startViewTransition({
-      update: updateDOM,
-      types: [direction]
-    });
-  } else {
-    updateDOM();
-  }
-}
-
-function updateBodyTheme() {
-  const body = document.body;
-  body.className = ''; // Reset class
-  
-  if (state.currentStep === 0) {
-    body.classList.add('theme-default');
-  } else if (state.currentStep >= 1 && state.currentStep <= 5) {
-    // During quiz, change theme based on chosen branch (after Q1)
-    if (state.currentBranch === 'light') {
-      body.classList.add('theme-gryffindor');
-    } else if (state.currentBranch === 'shadow') {
-      body.classList.add('theme-slytherin');
-    } else if (state.currentBranch === 'wisdom') {
-      body.classList.add('theme-ravenclaw');
-    } else {
-      body.classList.add('theme-default');
-    }
-  } else if (state.currentStep >= 6) {
-    // When sorted, apply the sorted house theme!
-    if (state.sortedHouse) {
-      body.classList.add(housesData[state.sortedHouse].class);
-    } else {
-      body.classList.add('theme-default');
-    }
-  }
-}
-
-/* ==========================================
-   APP INITIALIZATION & ROUTING EVENTS
-   ========================================== */
-
-document.addEventListener('DOMContentLoaded', () => {
-  setupEventListeners();
-  updateBodyTheme();
-});
-
-let cameraStream = null;
-
-function setupEventListeners() {
-  // Sound toggle
-  document.getElementById('sound-toggle').addEventListener('click', toggleSound);
-
-  // Welcome page submission
-  document.getElementById('start-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    state.userName = document.getElementById('user-name').value.trim();
-    state.currentStep = 1;
-    
-    if (audioCtx) playMagicChime();
-    
-    navigate('quiz-screen');
-    renderQuestion();
-  });
-
-  // Quiz navigation buttons
-  document.getElementById('prev-btn').addEventListener('click', goPrevQuestion);
-  document.getElementById('next-btn').addEventListener('click', goNextQuestion);
-
-  // Inline photo upload trigger
-  document.getElementById('inline-upload-btn').addEventListener('click', () => {
-    document.getElementById('inline-file-input').click();
-  });
-
-  // Inline file input change
-  document.getElementById('inline-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setInlinePhoto(event.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // Inline camera open trigger
-  document.getElementById('inline-camera-btn').addEventListener('click', async () => {
-    const video = document.getElementById('video-inline');
-    const placeholder = document.getElementById('inline-placeholder');
-    const previewImg = document.getElementById('img-inline');
-    const controls = document.querySelector('.photo-capture-controls');
-    
-    // Hide placeholder/previous image and show video stream
-    placeholder.style.display = 'none';
-    previewImg.style.display = 'none';
-    video.style.display = 'block';
-
-    // Update buttons visibility
-    document.getElementById('inline-upload-btn').style.display = 'none';
-    document.getElementById('inline-camera-btn').style.display = 'none';
-    document.getElementById('inline-snap-btn').style.display = 'inline-block';
-    document.getElementById('inline-cancel-btn').style.display = 'inline-block';
-    controls.classList.add('snapping');
-
-    try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false
-      });
-      video.srcObject = cameraStream;
-      document.getElementById('inline-photo-preview').classList.add('active');
-    } catch (err) {
-      console.error("Camera access failed", err);
-      alert("Не удалось получить доступ к камере. Пожалуйста, загрузите файл.");
-      resetInlineControls();
-    }
-  });
-
-  // Inline cancel camera trigger
-  document.getElementById('inline-cancel-btn').addEventListener('click', () => {
-    stopCamera();
-    resetInlineControls();
-  });
-
-  // Inline camera snapshot capture
-  document.getElementById('inline-snap-btn').addEventListener('click', () => {
-    const video = document.getElementById('video-inline');
-    const canvas = document.getElementById('canvas-inline');
-    const context = canvas.getContext('2d');
-
-    if (cameraStream) {
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-
-      // Draw mirrored video frame to canvas
-      context.translate(canvas.width, 0);
-      context.scale(-1, 1);
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      setInlinePhoto(dataUrl);
-
-      stopCamera();
-      resetInlineControls();
-    }
-  });
-
-  // Photo submit continue button
-  document.getElementById('photo-submit-btn').addEventListener('click', () => {
-    // Navigate to sorting loading screen for final decision quotes
-    state.currentStep = 6.5;
-    navigate('sorting-screen', 'forward');
-    runSortingCeremony(true); // Run final sorting hat decision
-  });
-
-  // Results page interactions: pricing tiers
-  const tierCards = document.querySelectorAll('.tier-card');
-  tierCards.forEach(card => {
-    card.addEventListener('click', () => {
-      tierCards.forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      state.selectedTier = card.dataset.tier;
-      
-      // Update activate button label
-      const price = card.dataset.price;
-      const actBtnText = document.getElementById('activate-profile-btn').querySelector('.btn-text');
-      actBtnText.textContent = `Активировать профиль за ${price}`;
-      
-      if (audioCtx) playMagicChime();
-    });
-  });
-
-  // Activate button click
-  document.getElementById('activate-profile-btn').addEventListener('click', () => {
-    state.currentStep = 8;
-    openPaymentCheckout();
-  });
-
-  // Result page back button (return to quiz Q5)
-  document.getElementById('result-back-btn').addEventListener('click', () => {
-    state.currentStep = 5;
-    navigate('quiz-screen', 'backward');
-    renderQuestion();
-  });
-
-  // Payment back button
-  document.getElementById('payment-back-btn').addEventListener('click', () => {
-    state.currentStep = 7;
-    navigate('result-screen', 'backward');
-  });
-
-  // Payment inputs formatting and validation
-  setupPaymentInputFormatting();
-
-  // Payment submit
-  document.getElementById('checkout-form').addEventListener('submit', handlePaymentSubmit);
-
-  // Success envelope click to open/read
-  const envelope = document.getElementById('letter-envelope');
-  envelope.addEventListener('click', () => {
-    if (!envelope.classList.contains('open')) {
-      envelope.classList.add('open');
-      if (audioCtx) playMagicChime();
-      
-      // Reveal the actions block after letter is out
-      setTimeout(() => {
-        const actions = document.getElementById('success-actions');
-        actions.style.opacity = '1';
-        actions.style.pointerEvents = 'all';
-      }, 1500);
-    } else if (!envelope.classList.contains('read')) {
-      envelope.classList.add('read');
-    } else {
-      envelope.classList.remove('read');
-    }
-  });
-
-  // Cabinet button
-  document.getElementById('go-to-cabinet-btn').addEventListener('click', () => {
-    alert(`Поздравляем, ${state.userName}! Вы вошли в ваш магический профиль. Данные подписки активированы.`);
-  });
-}
-
-function stopCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-}
-
-function resetInlineControls() {
-  const video = document.getElementById('video-inline');
-  const placeholder = document.getElementById('inline-placeholder');
-  const previewImg = document.getElementById('img-inline');
-  const controls = document.querySelector('.photo-capture-controls');
-  
-  video.style.display = 'none';
-  if (previewImg.src && previewImg.src !== window.location.href) {
-    previewImg.style.display = 'block';
-    placeholder.style.display = 'none';
-  } else {
-    placeholder.style.display = 'block';
-    previewImg.style.display = 'none';
-  }
-
-  document.getElementById('inline-upload-btn').style.display = 'inline-block';
-  document.getElementById('inline-camera-btn').style.display = 'inline-block';
-  document.getElementById('inline-snap-btn').style.display = 'none';
-  document.getElementById('inline-cancel-btn').style.display = 'none';
-  controls.classList.remove('snapping');
-  document.getElementById('inline-photo-preview').classList.remove('active');
-}
-
-function setInlinePhoto(dataUrl) {
-  const previewImg = document.getElementById('img-inline');
-  const placeholder = document.getElementById('inline-placeholder');
-  const submitBtn = document.getElementById('photo-submit-btn');
-
-  previewImg.src = dataUrl;
-  previewImg.style.display = 'block';
-  placeholder.style.display = 'none';
-
-  // Enable submit button
-  submitBtn.removeAttribute('disabled');
-
-  // Pre-fill result screen wizard card photo
-  const cardPhoto = document.getElementById('card-photo-img');
-  const cardPlaceholder = document.getElementById('card-avatar-placeholder');
-  cardPhoto.src = dataUrl;
-  cardPhoto.style.display = 'block';
-  cardPlaceholder.style.display = 'none';
-
-  if (audioCtx) playMagicChime();
-}
-
-/* ==========================================
-   QUIZ ENGINE
-   ========================================== */
-
-function getQuestionData(step) {
-  if (step === 1) return Q1;
-  
-  const branch = state.currentBranch || 'light';
-  return branchQuestions[branch][step - 2];
-}
-
-function renderQuestion() {
-  const question = getQuestionData(state.currentStep);
-  const questionTextEl = document.getElementById('question-text');
-  const optionsContainerEl = document.getElementById('options-container');
-  
-  questionTextEl.textContent = question.text;
-  optionsContainerEl.innerHTML = '';
-  state.selectedOptionIndex = null;
-  
-  // Disable next button until selection
-  document.getElementById('next-btn').disabled = true;
-  
-  // Render options
-  question.options.forEach((opt, idx) => {
-    const card = document.createElement('div');
-    card.className = 'option-card';
-    card.dataset.index = idx;
-    
-    // Check if we previously answered this question
-    const prevAnswer = state.answers[state.currentStep - 1];
-    if (prevAnswer && prevAnswer.selectedOptionIndex === idx) {
-      card.classList.add('selected');
-      state.selectedOptionIndex = idx;
-      document.getElementById('next-btn').disabled = false;
-    }
-    
-    card.innerHTML = `
-      <div class="option-radio"></div>
-      <span class="option-text">${opt.text}</span>
-    `;
-    
-    card.addEventListener('click', () => {
-      document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      state.selectedOptionIndex = idx;
-      document.getElementById('next-btn').disabled = false;
-      
-      if (audioCtx) playMagicChime();
-    });
-    
-    optionsContainerEl.appendChild(card);
-  });
-
-  // Handle Progress Bar
-  const progressFill = document.getElementById('progress-fill');
-  const progressPercent = (state.currentStep / 5) * 100;
-  progressFill.style.width = `${progressPercent}%`;
-  
-  const progressStats = document.getElementById('quiz-steps-display');
-  progressStats.textContent = `Вопрос ${state.currentStep} из 5`;
-
-  // Show/Hide back button
-  const prevBtn = document.getElementById('prev-btn');
-  prevBtn.style.visibility = state.currentStep > 1 ? 'visible' : 'hidden';
-}
-
-function goPrevQuestion() {
-  if (state.currentStep > 1) {
-    state.currentStep--;
-    navigate('quiz-screen', 'backward');
-    renderQuestion();
-  }
-}
-
-function goNextQuestion() {
-  if (state.selectedOptionIndex === null) return;
-  
-  const question = getQuestionData(state.currentStep);
-  const selectedOption = question.options[state.selectedOptionIndex];
-
-  // Save/Overwrite answer in history
-  state.answers[state.currentStep - 1] = {
-    questionText: question.text,
-    selectedOptionIndex: state.selectedOptionIndex,
-    branch: selectedOption.branch || null,
-    points: selectedOption.points || null
-  };
-
-  // Branching transition on Question 1
-  if (state.currentStep === 1) {
-    state.currentBranch = selectedOption.branch;
-  }
-
-  // Advance
-  if (state.currentStep < 5) {
-    state.currentStep++;
-    navigate('quiz-screen', 'forward');
-    renderQuestion();
-  } else {
-    // Finished all 5 questions! Start sorting hat ceremony loading screen
-    state.currentStep = 6;
-    navigate('sorting-screen', 'forward');
-    runSortingCeremony(false); // Call initial sorting loader (before photo)
-  }
-}
-
-/* ==========================================
-   SORTING CEREMONY ENGINE
-   ========================================== */
-
-function runSortingCeremony(isFinal = false) {
-  const quoteEl = document.getElementById('hat-quote');
-  const mouth = document.getElementById('hat-mouth');
-  const quotesList = isFinal ? finalSortingQuotes : initialSortingQuotes;
-  let quoteIdx = 0;
-  
-  // Set initial quote immediately
-  quoteEl.textContent = quotesList[0];
-  if (audioCtx) playSortingHatMumble();
-  quoteIdx++;
-
-  // Text animation loop
-  const interval = setInterval(() => {
-    if (quoteIdx < quotesList.length) {
-      const quote = quotesList[quoteIdx];
-      quoteEl.textContent = quote;
-      
-      // Animate Sorting Hat mouth (simulate speech wiggle)
-      let talkCount = 0;
-      if (audioCtx) playSortingHatMumble();
-      
-      const mouthTalk = setInterval(() => {
-        if (talkCount % 2 === 0) {
-          mouth.setAttribute('d', 'M40,64 C43,58 57,58 60,64'); // Open mouth
-        } else {
-          mouth.setAttribute('d', 'M42,64 C45,64 55,64 58,64'); // Close mouth
-        }
-        talkCount++;
-        if (talkCount > 6) clearInterval(mouthTalk);
-      }, 100);
-
-      quoteIdx++;
-    } else {
-      clearInterval(interval);
-      
-      if (!isFinal) {
-        // Redirection to photo capture screen after first sorting loading
-        setTimeout(() => {
-          state.currentStep = 6;
-          navigate('photo-capture-screen', 'forward');
-          stopCamera();
-        }, 1200);
-      } else {
-        // Calculate scores and go to result screen
-        calculateScores();
-        setTimeout(() => {
-          state.currentStep = 7;
-          showResultScreen();
-        }, 1200);
-      }
-    }
-  }, 2200);
-}
-
-function calculateScores() {
-  // Reset scores
-  state.scores = { gryffindor: 0, slytherin: 0, ravenclaw: 0, hufflepuff: 0 };
-  
-  // Accumulate points from answer history
-  state.answers.forEach(ans => {
-    if (ans.points) {
-      for (let h in ans.points) {
-        state.scores[h] += ans.points[h];
-      }
-    }
-  });
-
-  // Find house with maximum score
-  let maxScore = -1;
-  let winningHouse = 'gryffindor'; // default fallback
-  
-  for (let house in state.scores) {
-    if (state.scores[house] > maxScore) {
-      maxScore = state.scores[house];
-      winningHouse = house;
-    }
-  }
-
-  state.sortedHouse = winningHouse;
-}
-
-/* ==========================================
-   RESULT SCREEN (PERSONALIZATION & 3D TILT)
-   ========================================== */
-
-function showResultScreen() {
-  const house = housesData[state.sortedHouse];
-  
-  // Fill result page content
-  document.getElementById('sorted-house-name').textContent = house.name;
-  document.getElementById('sorted-house-desc').textContent = house.desc;
-  
-  // Fill Wizard Card details
-  document.getElementById('card-crest').textContent = house.crest;
-  document.getElementById('card-user-name').textContent = state.userName;
-  document.getElementById('card-house-val').textContent = house.name;
-  document.getElementById('card-watermark-text').textContent = house.watermark;
-  
-  // Get Q1 selected wand core
-  const q1Ans = state.answers[0];
-  const q1OptIdx = q1Ans.selectedOptionIndex;
-  const wandMap = ["Перо Феникса", "Жила Дракона", "Волос Единорога"];
-  document.getElementById('card-wand-val').textContent = wandMap[q1OptIdx] || "Неизвестно";
-  
-  // Set profile skills and animate bars
-  document.getElementById('stat-defense-val').textContent = `${house.stats.defense}%`;
-  document.getElementById('stat-potions-val').textContent = `${house.stats.potions}%`;
-  document.getElementById('stat-creatures-val').textContent = `${house.stats.creatures}%`;
-  
-  // Fill Patronus info
-  document.getElementById('patronus-val').textContent = house.patronus;
-
-  // Fill Roadmap items
-  document.getElementById('roadmap-house-name').textContent = house.name;
-
-  // Render visual theme classes to the 3D card front
-  const cardFront = document.querySelector('.card-front');
-  cardFront.style.borderColor = `var(--secondary-color)`;
-  
-  navigate('result-screen', 'forward');
-
-  // Trigger stat bar expansion animation
-  setTimeout(() => {
-    document.getElementById('stat-defense-fill').style.width = `${house.stats.defense}%`;
-    document.getElementById('stat-potions-fill').style.width = `${house.stats.potions}%`;
-    document.getElementById('stat-creatures-fill').style.width = `${house.stats.creatures}%`;
-  }, 300);
-
-  // Setup 3D Hover tilt effect
-  setup3dCardTilt();
-}
-
-function setup3dCardTilt() {
-  const cardContainer = document.querySelector('.card-container-3d');
-  const card = document.getElementById('wizard-card');
-  
-  cardContainer.addEventListener('mousemove', (e) => {
-    const rect = cardContainer.getBoundingClientRect();
-    const x = e.clientX - rect.left; // x position within element
-    const y = e.clientY - rect.top;  // y position within element
-    
-    const cardWidth = rect.width;
-    const cardHeight = rect.height;
-    
-    // Calculate rotation angles (range -20 to 20 degrees)
-    const rotateY = ((x / cardWidth) - 0.5) * 30;
-    const rotateX = (((y / cardHeight) - 0.5) * -30);
-    
-    card.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
-    
-    // Move glow glare highlight
-    const glare = document.querySelector('.card-photo-glare');
-    const glareX = (x / cardWidth) * 100;
-    const glareY = (y / cardHeight) * 100;
-    glare.style.background = `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.18) 0%, transparent 60%)`;
-  });
-
-  cardContainer.addEventListener('mouseleave', () => {
-    card.style.transform = 'rotateY(0deg) rotateX(0deg)';
-    const glare = document.querySelector('.card-photo-glare');
-    glare.style.background = '';
-  });
-}
-
-/* ==========================================
-   PAYMENT / CHECKOUT ENGINE
-   ========================================== */
-
-function openPaymentCheckout() {
-  const house = housesData[state.sortedHouse];
-  const tierInfo = {
-    weekly: { name: "Недельный триал (Подписка)", price: "990 ₸" },
-    monthly: { name: "1 Месяц (Подписка)", price: "2 990 ₸" },
-    lifetime: { name: "Навсегда (Разовый платеж)", price: "9 990 ₸" }
-  };
-  
-  const selectedTierData = tierInfo[state.selectedTier];
-  
-  document.getElementById('summary-tier-name').textContent = selectedTierData.name;
-  document.getElementById('summary-house-name').textContent = house.name;
-  document.getElementById('summary-price-val').textContent = selectedTierData.price;
-  
-  const submitBtn = document.getElementById('pay-submit-btn').querySelector('.btn-text');
-  submitBtn.textContent = `Оплатить ${selectedTierData.price}`;
-  
-  navigate('payment-screen', 'forward');
-}
-
-function setupPaymentInputFormatting() {
-  const cardInput = document.getElementById('card-number');
-  const expiryInput = document.getElementById('card-expiry');
-  const cvcInput = document.getElementById('card-cvc');
-  const brandIcon = document.getElementById('card-brand-icon');
-
-  // Card Number space formatting & brand detection
-  cardInput.addEventListener('input', (e) => {
-    let value = cardInput.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    let formattedValue = '';
-    
-    // Auto-detect brand emoji
-    if (value.startsWith('4')) {
-      brandIcon.textContent = '🟦 Visa';
-    } else if (value.startsWith('5') || value.startsWith('22') || value.startsWith('23') || value.startsWith('24') || value.startsWith('25') || value.startsWith('26') || value.startsWith('27')) {
-      brandIcon.textContent = '🟨 MC';
-    } else if (value.startsWith('2200') || value.startsWith('2201') || value.startsWith('2202') || value.startsWith('2203') || value.startsWith('2204')) {
-      brandIcon.textContent = '🟩 Мир';
-    } else {
-      brandIcon.textContent = '💳';
-    }
-
-    // Limit value to 16 digits
-    value = value.substring(0, 16);
-
-    for (let i = 0; i < value.length; i++) {
-      if (i > 0 && i % 4 === 0) {
-        formattedValue += ' ';
-      }
-      formattedValue += value.charAt(i);
-    }
-    
-    cardInput.value = formattedValue;
-    validateInput(cardInput);
-  });
-
-  // Expiry date format MM/YY
-  expiryInput.addEventListener('input', () => {
-    let value = expiryInput.value.replace(/\D/g, '');
-    if (value.length > 2) {
-      expiryInput.value = value.substring(0, 2) + '/' + value.substring(2, 4);
-    } else {
-      expiryInput.value = value;
-    }
-    validateInput(expiryInput);
-  });
-
-  // CVV limit to numbers
-  cvcInput.addEventListener('input', () => {
-    cvcInput.value = cvcInput.value.replace(/\D/g, '').substring(0, 3);
-    validateInput(cvcInput);
-  });
-
-  // Common inputs validation styling helper
-  const inputs = [
-    document.getElementById('card-holder'),
-    cardInput,
-    expiryInput,
-    cvcInput
-  ];
-
-  inputs.forEach(input => {
-    input.addEventListener('blur', () => validateInput(input));
-  });
-}
-
-function validateInput(input) {
-  const group = input.closest('.input-group');
-  let isValid = true;
-
-  if (input.id === 'card-holder') {
-    // Only letters and spaces, at least 4 chars
-    const reg = /^[a-zA-Z\s]{4,30}$/;
-    isValid = reg.test(input.value);
-  } else if (input.id === 'card-number') {
-    const rawNum = input.value.replace(/\s+/g, '');
-    isValid = rawNum.length === 16 && luhnCheck(rawNum);
-  } else if (input.id === 'card-expiry') {
-    const match = input.value.match(/^(0[1-9]|1[0-2])\/([2-9][0-9])$/);
-    if (!match) {
-      isValid = false;
-    } else {
-      // Check expiry is in future
-      const currentYear = parseInt(new Date().getFullYear().toString().slice(-2), 10);
-      const currentMonth = new Date().getMonth() + 1;
-      const expMonth = parseInt(match[1], 10);
-      const expYear = parseInt(match[2], 10);
-      
-      if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-        isValid = false;
-      }
-    }
-  } else if (input.id === 'card-cvc') {
-    isValid = /^\d{3}$/.test(input.value);
-  }
-
-  if (isValid || input.value === '') {
-    group.classList.remove('invalid');
-  } else {
-    group.classList.add('invalid');
-  }
-
-  return isValid;
-}
-
-function luhnCheck(val) {
-  let sum = 0;
-  for (let i = 0; i < val.length; i++) {
-    let intVal = parseInt(val.substr(i, 1), 10);
-    if (i % 2 === 0) {
-      intVal *= 2;
-      if (intVal > 9) {
-        intVal = 1 + (intVal % 10);
-      }
-    }
-    sum += intVal;
-  }
-  return (sum % 10 === 0);
-}
-
-function handlePaymentSubmit(e) {
-  e.preventDefault();
-  
-  const form = e.target;
-  const inputs = form.querySelectorAll('input');
-  let formValid = true;
-
-  inputs.forEach(input => {
-    if (!validateInput(input) || input.value === '') {
-      input.closest('.input-group').classList.add('invalid');
-      formValid = false;
-    }
-  });
-
-  if (!formValid) return;
-
-  // Show loading spinner
-  const submitBtn = document.getElementById('pay-submit-btn');
-  const btnText = submitBtn.querySelector('.btn-text');
-  const btnSpinner = submitBtn.querySelector('.btn-spinner');
-  
-  submitBtn.disabled = true;
-  btnText.style.display = 'none';
-  btnSpinner.style.display = 'inline-block';
-
-  // Simulate payment processing (2.5 seconds)
-  setTimeout(() => {
-    state.currentStep = 9;
-    
-    // Fill letter details
-    document.getElementById('letter-recipient-name').textContent = state.userName;
-    document.getElementById('letter-house-name').textContent = housesData[state.sortedHouse].name;
-    
-    if (audioCtx) playMagicChime();
-    
-    navigate('success-screen', 'forward');
-  }, 2500);
-}
+// Global Initialization
+window.addEventListener('DOMContentLoaded', initApp);
