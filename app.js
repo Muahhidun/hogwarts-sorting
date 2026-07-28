@@ -1,5 +1,5 @@
 /* ==========================================
-   MONETIZATION MATRIX 22 - ENTERPRISE B2B SAAS LOGIC
+   MONETIZATION MATRIX 22 - MARKETING-DRIVEN B2B/B2C LOGIC
    ========================================== */
 
 let audioCtx = null;
@@ -51,11 +51,11 @@ function playClick() {
 let currentCategory = 'all';
 let currentModelId = 'subscription';
 
-// State variables for interactive widgets
-let subCycle = 'annual';
-let teamMembers = ['alex@acme-corp.com', 'sarah.m@acme-corp.com', 'dev.lead@acme-corp.com'];
-let seatPlanRate = 15;
-let seatSsoAddon = false;
+// Active state values for widgets
+let subSelectedPeriod = 'year';
+let seatPackageCount = 10;
+let teamMembers = ['alex@acme.com', 'sarah@acme.com', 'dev.lead@acme.com'];
+let overusageFlexAllowed = true;
 
 const modelsData = [
   // 01: SUBSCRIPTION
@@ -65,88 +65,97 @@ const modelsData = [
     category: 'sub',
     title: 'Subscription (Рекуррентная подписка)',
     icon: '🔁',
-    subtitle: 'Автоматические регулярные списания (SaaS / B2B Billing)',
-    desc: 'Классическая бизнес-модель B2B SaaS. Клиент привязывает корпоративную карту или подписывает безакцептное списание (Stripe Billing / Recurring Invoicing). Обеспечивает высокий и предсказуемый MRR/ARR.',
-    formula: 'ARR = MRR × 12 = (Количество клиентов × Средний чек ARPU) × 12',
-    cases: ['Netflix', 'Spotify', 'Salesforce', 'ChatGPT Plus', 'WeDrink POS'],
-    pros: 'Высокая предсказуемость денежных потоков (MRR), высокий мультипликатор оценки компании при LTV/CAC > 3x.',
-    risks: 'Involuntary Churn (ошибки карт), высокие затраты на удержание (Retention) и технический саппорт.',
+    subtitle: 'Маркетинговая линейка периодов подписки (от года к неделе)',
+    desc: 'Классическая подписка с агрессивной маркетинговой упаковкой. Карточки расположены СЛЕВА НАПРАВО — от самого выгодного годового плана (с минимальной пересчитанной ценой в месяц) до короткой недельной пробной подписки.',
+    formula: 'ARR = Годовой чек + Рекуррентные продления. (LTV = ARPU / Churn)',
+    cases: ['Netflix', 'Spotify', 'ChatGPT Plus', 'Duolingo', 'WeDrink POS'],
+    pros: 'Высокая конверсия в годовые подписки за счет контраста цен; стабильный предсказуемый MRR/ARR.',
+    risks: 'Клиенты могут отменять подписку после завершения первого периода, если не почувствуют постоянную ценность.',
     aiValidation: [
-      'Валидировать показатель оттока (Churn Rate < 2% в месяц для B2B)',
-      'Проверить готовность финотдела клиента к регулярным списаниям вместо единовременного бюджета',
-      'Рассчитать окупаемость привлечения клиента (CAC Payback Period < 12 месяцев)'
+      'Проверить конверсию из пробной недели в полноценную месячную/годовую подписку',
+      'Оценить уровень оттока (Churn Rate) по каждому периоду отдельно',
+      'Настроить авто-напоминания о продлении для снижения Involuntary Churn'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Конфигуратор корпоративной подписки</span>
-          <span style="color: var(--primary-accent);">Stripe Billing Engine v4.2</span>
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">Выберите идеальный план подписки</div>
+            <div class="marketing-hero-sub">Получите неограниченный доступ ко всем возможностям платформы</div>
+          </div>
+          <div class="marketing-savings-badge">🔥 Сэкономьте до 48 000 ₸ при оплате за год</div>
         </div>
 
-        <div style="display:flex; gap:0.5rem; align-items:center; background:#161e2e; padding:0.4rem; border-radius:6px; width:fit-content;">
-          <button class="sim-action-btn ${subCycle === 'monthly' ? '' : 'secondary'}" style="padding:0.4rem 0.8rem; font-size:0.78rem;" onclick="setSubCycle('monthly')">Ежемесячно</button>
-          <button class="sim-action-btn ${subCycle === 'annual' ? '' : 'secondary'}" style="padding:0.4rem 0.8rem; font-size:0.78rem;" onclick="setSubCycle('annual')">Ежегодно (-20% Скидка)</button>
-        </div>
+        <div class="marketing-cards-grid">
+          <!-- 1. ГОД (Слева - самый выгодный) -->
+          <div class="marketing-plan-card featured ${subSelectedPeriod === 'year' ? 'active' : ''}" onclick="selectSubPeriod('year')">
+            <div class="marketing-card-badge gold">САМЫЙ ВЫГОДНЫЙ 🔥</div>
+            <div class="plan-card-period">1 Год (12 мес)</div>
+            <div class="plan-card-display-price">6 000 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Списывается 72 000 ₸ разово за 12 месяцев</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 48 000 ₸</li>
+              <li>✓ Все PRO-модули</li>
+              <li>✓ VIP поддержка 24/7</li>
+            </ul>
+          </div>
 
-        <table class="enterprise-table">
-          <thead>
-            <tr>
-              <th>Модули и Возможности</th>
-              <th>Standard</th>
-              <th>Business PRO</th>
-              <th>Enterprise SLA</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Количество активных пользователей</td>
-              <td>До 5 мест</td>
-              <td>До 25 мест</td>
-              <td>Безлимитно</td>
-            </tr>
-            <tr>
-              <td>Выгрузка отчетов и аналитики</td>
-              <td>CSV / Excel</td>
-              <td>API / BI Connectors</td>
-              <td>Real-time Stream</td>
-            </tr>
-            <tr>
-              <td>SAML SSO & Audit Logs</td>
-              <td>❌</td>
-              <td>✓ Включено</td>
-              <td>✓ Включено</td>
-            </tr>
-            <tr>
-              <td>Гарантия SLA и Поддержка</td>
-              <td>Email 24ч</td>
-              <td>Чат 1ч</td>
-              <td>Dedicated AM 99.9%</td>
-            </tr>
-            <tr>
-              <td><strong>Стоимость плана:</strong></td>
-              <td><strong style="color:var(--text-muted);">${subCycle === 'annual' ? '7 900 ₸/мес' : '9 900 ₸/мес'}</strong></td>
-              <td><strong style="color:var(--primary-accent);">${subCycle === 'annual' ? '19 900 ₸/мес' : '24 900 ₸/мес'}</strong></td>
-              <td><strong style="color:var(--secondary-accent);">${subCycle === 'annual' ? '49 900 ₸/мес' : '59 900 ₸/мес'}</strong></td>
-            </tr>
-          </tbody>
-        </table>
+          <!-- 2. ПОЛГОДА -->
+          <div class="marketing-plan-card ${subSelectedPeriod === 'half' ? 'active' : ''}" onclick="selectSubPeriod('half')">
+            <div class="marketing-card-badge">Скидка -30%</div>
+            <div class="plan-card-period">6 Месяцев</div>
+            <div class="plan-card-display-price">7 000 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Списывается 42 000 ₸ за 6 месяцев</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 18 000 ₸</li>
+              <li>✓ Все PRO-модули</li>
+            </ul>
+          </div>
+
+          <!-- 3. 3 МЕСЯЦА -->
+          <div class="marketing-plan-card ${subSelectedPeriod === 'quarter' ? 'active' : ''}" onclick="selectSubPeriod('quarter')">
+            <div class="plan-card-period">3 Месяца</div>
+            <div class="plan-card-display-price">9 000 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Списывается 27 000 ₸ за 3 месяца</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 3 000 ₸</li>
+              <li>✓ Базовые модули</li>
+            </ul>
+          </div>
+
+          <!-- 4. 1 МЕСЯЦ -->
+          <div class="marketing-plan-card ${subSelectedPeriod === 'month' ? 'active' : ''}" onclick="selectSubPeriod('month')">
+            <div class="plan-card-period">1 Месяц</div>
+            <div class="plan-card-display-price">10 000 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Стандартная гибкая подписка</div>
+            <ul class="plan-card-features">
+              <li>✓ Без обязательств</li>
+              <li>✓ Отмена в любой момент</li>
+            </ul>
+          </div>
+
+          <!-- 5. 1 НЕДЕЛЯ (Тест-драйв) -->
+          <div class="marketing-plan-card ${subSelectedPeriod === 'week' ? 'active' : ''}" onclick="selectSubPeriod('week')">
+            <div class="plan-card-period">1 Неделя (Тест)</div>
+            <div class="plan-card-display-price">8 000 ₸ <span>/ нед</span></div>
+            <div class="plan-card-small-print">70% стоимости месяца — идеальный тест-драйв</div>
+            <ul class="plan-card-features">
+              <li>✓ Полный тест на 7 дней</li>
+              <li>✓ Быстрый старт</li>
+            </ul>
+          </div>
+        </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-title">Спецификация и детализация счета (Invoice Specification)</div>
-          <div class="receipt-row"><span>Выбранный тарифный план:</span> <strong>Business PRO (${subCycle === 'annual' ? 'Годовой контракт' : 'Ежемесячный'})</strong></div>
-          <div class="receipt-row"><span>Субтотал:</span> <span>${subCycle === 'annual' ? '238 800 ₸' : '24 900 ₸'}</span></div>
-          <div class="receipt-row"><span>НДС / Налог (12%):</span> <span>${subCycle === 'annual' ? '28 656 ₸' : '2 988 ₸'}</span></div>
-          <div class="receipt-row total"><span>Итоговый чек к оплате:</span> <span id="sub-final-total">${subCycle === 'annual' ? '267 456 ₸ / год' : '27 888 ₸ / мес'}</span></div>
+          <div class="receipt-title">Спецификация платежа</div>
+          <div class="receipt-row"><span>Выбранный период:</span> <strong id="sub-period-title">1 Год (72 000 ₸)</strong></div>
+          <div class="receipt-row"><span>Эквивалент стоимости в месяц:</span> <strong style="color:var(--secondary-accent);" id="sub-monthly-eq">6 000 ₸ / мес</strong></div>
+          <div class="receipt-row total"><span>Итого к оплате сейчас:</span> <span id="sub-total-charge">72 000 ₸</span></div>
         </div>
 
-        <div style="display:flex; gap:0.75rem;">
-          <button class="sim-action-btn" style="flex:1;" onclick="triggerSimPayment('Подписка Business PRO успешно активирована!')">
-            ⚡ Подписать корпоративную подписку
-          </button>
-          <button class="sim-action-btn secondary" onclick="triggerSimPayment('Образец счета PDF сгенерирован!')">
-            📄 Скачать счет (PDF)
-          </button>
-        </div>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Подписка успешно оформлена!')">
+          ⚡ Оформить подписку с гарантией возврата 14 дней
+        </button>
       </div>
     `
   },
@@ -158,46 +167,75 @@ const modelsData = [
     category: 'sub',
     title: 'Freemium (Бесплатный вход + PRO)',
     icon: '🔓',
-    subtitle: 'Базовый инструмент бесплатно, платит 2-5% продвинутых команд',
-    desc: 'Продукт распространяется свободно. Бесплатный тариф создает продуктовый воронковый охват (Product-Led Growth), а лимиты использования органично подталкивают команды к покупке PRO.',
-    formula: 'Платная выручка = (Общий Free охват × % Конверсии 2-5%) × ARPU PRO плана',
+    subtitle: 'Маркетинговая воронка: продукт бесплатен, пока не упретесь в лимиты',
+    desc: 'Бесплатный тариф привлекает огромный поток клиентов без барьера входа. Как только пользователь активно начинает работать с софтом, он упирается в продуктовые лимиты (Gate Limits) и совершает апгрейд до PRO.',
+    formula: 'Конверсия PLG = Платные пользователи PRO / Общая база бесплатников (Обычно 2-5%)',
     cases: ['Figma', 'Slack', 'Zoom', 'Notion', 'Dropbox'],
-    pros: 'Огромный бесплатный органический охват (PLG), нулевая стоимость первичного привлечения (CAC).',
-    risks: 'Высокие расходы на инфраструктуру 95% неплатящих пользователей; сложность соблюдения баланса Free/PRO.',
+    pros: 'Виральный охват, отсутствие затрат на первичную рекламу, высокая конверсия теплых пользователей.',
+    risks: 'Если бесплатный тариф слишком щедрый — пользователи никогда не перейдут на платный.',
     aiValidation: [
-      'Определить точно "лимит триггера" (например: 3 проекта, 10 000 сообщений в истории)',
-      'Проверить, чтобы бесплатная версия создавала полноценную самостоятельную ценность',
-      'Рассчитать юнит-экономику хранения данных бесплатников'
+      'Определить точные лимиты бесплатной версии (например 3 проекта, 1000 токенов)',
+      'Протестировать триггерную рассылку при достижении 80% бесплатного лимита'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Управление лимитами тарифов (PLG Gate Manager)</span>
-          <span style="color:var(--amber-accent);" id="freemium-badge-status">ТЕКУЩИЙ ТАРИФ: FREE</span>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
-          <div style="background:#161e2e; padding:1rem; border-radius:8px; border:1px solid var(--panel-border);">
-            <div style="font-size:0.75rem; color:var(--text-dim); font-weight:700;">ЛИМИТ ПРОЕКТОВ WDRINK</div>
-            <div style="font-size:1.4rem; font-weight:700; margin:0.3rem 0; color:#fff;" id="freemium-proj-val">3 / 3 Проекта</div>
-            <div style="background:#334155; height:6px; border-radius:3px; overflow:hidden;">
-              <div style="background:var(--amber-accent); width:100%; height:100%;" id="freemium-proj-bar"></div>
-            </div>
-            <div style="font-size:0.72rem; color:var(--amber-accent); margin-top:0.4rem;">⚠️ Достигнут лимит бесплатного плана</div>
+        <div class="marketing-hero-banner" style="border-color:var(--amber-accent);">
+          <div>
+            <div class="marketing-hero-title">Вы используете план: FREE WORKSPACE</div>
+            <div class="marketing-hero-sub">Базовые функции бесплатны навсегда. Для снятия лимитов перейдите на PRO.</div>
           </div>
-
-          <div style="background:#161e2e; padding:1rem; border-radius:8px; border:1px solid var(--panel-border);">
-            <div style="font-size:0.75rem; color:var(--text-dim); font-weight:700;">ИСТОРИЯ АНАЛИТИКИ СКЛАДА</div>
-            <div style="font-size:1.4rem; font-weight:700; margin:0.3rem 0; color:#fff;" id="freemium-hist-val">7 дней</div>
-            <div style="background:#334155; height:6px; border-radius:3px; overflow:hidden;">
-              <div style="background:var(--primary-accent); width:30%; height:100%;" id="freemium-hist-bar"></div>
-            </div>
-            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.4rem;">PRO открывает 365 дней истории</div>
+          <div class="marketing-savings-badge" style="background:rgba(245,158,11,0.15); color:var(--amber-accent); border-color:var(--amber-accent);">
+            ⚠️ Лимит исчерпан на 95%
           </div>
         </div>
 
-        <button class="sim-action-btn" id="freemium-upgrade-btn" onclick="toggleFreemiumEnterprise()">
-          ⚡ Переключить аккаунт на PRO Enterprise (19 900 ₸/мес)
+        <div style="background:#141c2b; border:1px solid var(--panel-border); padding:1rem; border-radius:10px; display:flex; flex-direction:column; gap:0.75rem;">
+          <div class="control-label">
+            <span>Использовано бесплатных проектов:</span>
+            <span style="color:var(--amber-accent);">3 из 3 проектов (100%)</span>
+          </div>
+          <div style="background:#334155; height:8px; border-radius:4px; overflow:hidden;">
+            <div style="background:var(--amber-accent); width:100%; height:100%;"></div>
+          </div>
+
+          <div class="control-label" style="margin-top:0.5rem;">
+            <span>Использовано AI-токенов анализа:</span>
+            <span style="color:var(--primary-accent);">950 из 1 000 токенов (95%)</span>
+          </div>
+          <div style="background:#334155; height:8px; border-radius:4px; overflow:hidden;">
+            <div style="background:var(--primary-accent); width:95%; height:100%;"></div>
+          </div>
+        </div>
+
+        <table class="enterprise-table">
+          <thead>
+            <tr>
+              <th>Возможности</th>
+              <th>FREE Plan</th>
+              <th>PRO Enterprise</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Количество проектов</td>
+              <td>До 3 проектов</td>
+              <td><strong style="color:var(--secondary-accent);">Безлимитно</strong></td>
+            </tr>
+            <tr>
+              <td>Глубина аналитики</td>
+              <td>7 дней</td>
+              <td><strong style="color:var(--secondary-accent);">365 дней + AI Прогноз</strong></td>
+            </tr>
+            <tr>
+              <td>Экспорт отчетов</td>
+              <td>Только PDF</td>
+              <td><strong style="color:var(--secondary-accent);">Excel, CSV, API</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button class="sim-action-btn" style="background:linear-gradient(135deg, var(--secondary-accent), #059669); color:#000;" onclick="triggerSimPayment('PRO доступ успешно активирован на 7 дней бесплатно!')">
+          ⚡ Снять все ограничения — Попробовать PRO за 0 ₸ (7 дней бесплатно)
         </button>
       </div>
     `
@@ -208,56 +246,83 @@ const modelsData = [
     id: 'per-seat',
     num: '03',
     category: 'sub',
-    title: 'Per Seat (За рабочее место)',
+    title: 'Per Seat (Оплата за сотрудников)',
     icon: '👥',
-    subtitle: 'Чек масштабируется автоматически вместе со штатом клиента',
-    desc: 'Оплата рассчитывается за каждого зарегистрированного активного пользователя в организации. Позволяет расти внутри существующего клиента без работы отдела продаж (Expansion Revenue).',
-    formula: 'Ежемесячный чек = Количество активных сотрудников (Seats) × Ставка за 1 место + Add-ons',
-    cases: ['Google Workspace', 'Slack', 'Asana', 'Jira', 'HubSpot'],
-    pros: 'Встроенный механизм естественного роста выручки (Net Dollar Retention > 120%).',
-    risks: 'Сотрудники клиента передают логины "по наследству", чтобы сэкономить на лицензиях.',
+    subtitle: 'Маркетинговые оптовые пакеты мест (от крупных к мелким)',
+    desc: 'Оплата за каждого сотрудника. Маркетинг выстроен на оптовых скидках: покупать пакет из 10 или 25 мест выгоднее в пересчете на 1 сотрудника, что стимулирует компании сразу брать крупные пакеты.',
+    formula: 'Итоговый чек = Пакет мест × Оптовая цена за 1 место',
+    cases: ['Google Workspace', 'Slack', 'Jira', 'HubSpot', 'Zoom Business'],
+    pros: 'Автоматический рост чека вместе с расширением штата клиента (Land & Expand).',
+    risks: 'Клиенты передают логины друг другу, чтобы не покупать новые места.',
     aiValidation: [
-      'Проверить систему защиты от передачи логинов (2FA / IP lock)',
-      'Настроить систему автоматического пересчета прорейта (Prorated Billing) при добавлении сотрудников в середине месяца'
+      'Определить оптимальный размер оптовых пакетов (5, 10, 25, 50 мест)',
+      'Настроить авто-прорейт при добавлении сотрудников в середине месяца'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Управление корпоративными лицензиями (Team Roster)</span>
-          <span style="color:var(--primary-accent);">Тариф: $15 / seat / мес</span>
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">Оптовые пакеты рабочих мест для команд</div>
+            <div class="marketing-hero-sub">Чем больше команда — тем ниже цена за 1 сотрудника!</div>
+          </div>
         </div>
 
-        <div style="display:flex; gap:0.5rem;">
-          <input type="email" id="new-member-email" placeholder="colleague@company.com" style="flex:1; background:#161e2e; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem 0.8rem; color:#fff; font-size:0.8rem;">
-          <button class="sim-action-btn" style="padding:0.5rem 1rem; font-size:0.8rem;" onclick="addTeamMember()">+ Добавить сотрудника</button>
-        </div>
+        <div class="marketing-cards-grid">
+          <!-- 25 мест (Слева - самый выгодный) -->
+          <div class="marketing-plan-card featured ${seatPackageCount === 25 ? 'active' : ''}" onclick="selectSeatPkg(25, 7)">
+            <div class="marketing-card-badge gold">ОПТ -53% 🔥</div>
+            <div class="plan-card-period">Пакет 25 Мест</div>
+            <div class="plan-card-display-price">$7 <span>/ место / мес</span></div>
+            <div class="plan-card-small-print">Эквивалент ~$175 / мес за всю компанию</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 53% на сотрудника</li>
+              <li>✓ Admin Security Log</li>
+            </ul>
+          </div>
 
-        <table class="enterprise-table">
-          <thead>
-            <tr>
-              <th>Сотрудник</th>
-              <th>Роль</th>
-              <th>Статус лицензии</th>
-              <th>Действие</th>
-            </tr>
-          </thead>
-          <tbody id="team-table-body">
-            ${teamMembers.map((m, idx) => `
-              <tr>
-                <td>${m}</td>
-                <td><span style="background:#1e293b; padding:0.15rem 0.4rem; border-radius:4px; font-size:0.72rem;">Editor</span></td>
-                <td><span style="color:var(--secondary-accent);">Active Seat ($15/mo)</span></td>
-                <td><button style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:0.75rem;" onclick="removeTeamMember(${idx})">Удалить</button></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+          <!-- 10 мест -->
+          <div class="marketing-plan-card ${seatPackageCount === 10 ? 'active' : ''}" onclick="selectSeatPkg(10, 9)">
+            <div class="marketing-card-badge">Экономия 40%</div>
+            <div class="plan-card-period">Пакет 10 Мест</div>
+            <div class="plan-card-display-price">$9 <span>/ место / мес</span></div>
+            <div class="plan-card-small-print">Эквивалент ~$90 / мес за компанию</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 40% на сотрудника</li>
+              <li>✓ Централизованный счет</li>
+            </ul>
+          </div>
+
+          <!-- 5 мест -->
+          <div class="marketing-plan-card ${seatPackageCount === 5 ? 'active' : ''}" onclick="selectSeatPkg(5, 12)">
+            <div class="plan-card-period">Пакет 5 Мест</div>
+            <div class="plan-card-display-price">$12 <span>/ место / мес</span></div>
+            <div class="plan-card-small-print">Эквивалент ~$60 / мес за команду</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 20%</li>
+              <li>✓ Общий воркспейс</li>
+            </ul>
+          </div>
+
+          <!-- 1 место -->
+          <div class="marketing-plan-card ${seatPackageCount === 1 ? 'active' : ''}" onclick="selectSeatPkg(1, 15)">
+            <div class="plan-card-period">1 Место</div>
+            <div class="plan-card-display-price">$15 <span>/ место / мес</span></div>
+            <div class="plan-card-small-print">Стандартная цена за 1 юзера</div>
+            <ul class="plan-card-features">
+              <li>✓ Персональная лицензия</li>
+            </ul>
+          </div>
+        </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Активных мест (Seats):</span> <strong id="seat-active-count">${teamMembers.length} сотрудников</strong></div>
-          <div class="receipt-row"><span>Ставка за 1 место:</span> <span>$15 / мес (~6 750 ₸)</span></div>
-          <div class="receipt-row total"><span>Ежемесячный списанный чек:</span> <span id="seat-calc-total">$${teamMembers.length * 15} / мес (~${(teamMembers.length * 15 * 450).toLocaleString()} ₸)</span></div>
+          <div class="receipt-title">Расчет стоимости пакета</div>
+          <div class="receipt-row"><span>Выбранный пакет:</span> <strong id="seat-pkg-title">Пакет 10 Мест ($9 / место)</strong></div>
+          <div class="receipt-row total"><span>Общий ежемесячный чек:</span> <span id="seat-pkg-total-usd">$90 / мес (~40 500 ₸)</span></div>
         </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Командный пакет рабочих мест оформлен!')">
+          ⚡ Оформить пакет мест для компании
+        </button>
       </div>
     `
   },
@@ -267,52 +332,50 @@ const modelsData = [
     id: 'pay-per-use',
     num: '04',
     category: 'usage',
-    title: 'Pay-Per-Use / Metered (По факту потребления)',
+    title: 'Pay-Per-Use (Оплата по факту + Overusage Flex)',
     icon: '⚡',
-    subtitle: 'Клиент платит точно за гигабайты, вызовы API или серверное время',
-    desc: 'Оплата рассчитывается по факту использования инфраструктуры. Чем больше трафика или вычислений потребляет клиент, тем выше его чек. Идеально для API и облаков.',
-    formula: 'Итоговый чек = ∑ (Объем потребленного ресурса N × Дерево объемных тарифов Tier N)',
-    cases: ['Amazon AWS', 'OpenAI API', 'Twilio', 'Stripe Payments', 'Snowflake'],
-    pros: 'Справедливая ценовая политика; клиент платит только за реальную выгоду и масштаб.',
-    risks: 'Непредсказуемость ежемесячного чека (Bill Shock), клиенты ставят лимиты расхода.',
+    subtitle: 'Оплата за фактическое потребление с опцией автоматического перерасхода',
+    desc: 'Клиент заказывает базовый лимит потребления, но может включить галочку Flex Bill. При превышении лимита сервис не блокирует работу, а автоматически тарифицирует превышение по факту.',
+    formula: 'Итоговый чек = Базовый лимит + (Фактический перерасход × Ставка Overusage)',
+    cases: ['Amazon AWS', 'OpenAI API', 'Twilio', 'Stripe'],
+    pros: 'Гарантия бесперебойной работы сервиса клиента даже при внезапных пиках трафика.',
+    risks: 'Клиент может удивиться обратному чеку при бесконтрольном автоматическом перерасходе.',
     aiValidation: [
-      'Рассчитать точно маржинальность 1 единицы потребления (Unit Cost vs Unit Price)',
-      'Внедрить понятный калькулятор расходов и систему алертов порога бюджета'
+      'Внедрить понятный переключатель согласия на Flex Overusage',
+      'Настроить алерты при превышении базового лимита на 120% и 150%'
     ],
     renderWidget: () => `
       <div class="simulator-card">
         <div class="sim-section-title">
-          <span>Облачный калькулятор потребления API & Storage (Metered Engine)</span>
-          <span style="color:var(--secondary-accent);">Регион: eu-central-1</span>
+          <span>Настройка лимитов и гибкой тарификации (Flex Billing)</span>
+          <span style="color:var(--secondary-accent);">Status: Auto-Scale Active</span>
         </div>
 
         <div class="control-group">
           <div class="control-label">
-            <span>Вызовы API запросов в месяц:</span>
-            <span class="control-value" id="metered-api-val">250 000 вызовов</span>
+            <span>Базовый лимит запросов в месяц:</span>
+            <span class="control-value" id="ppu-req-display">100 000 запросов</span>
           </div>
-          <input type="range" class="custom-slider" min="10000" max="2000000" step="10000" value="250000" id="metered-api-slider" oninput="updateMeteredDashboard()">
+          <input type="range" class="custom-slider" min="10000" max="1000000" step="10000" value="100000" id="ppu-req-slider" oninput="updatePpuFlexCalc()">
         </div>
 
-        <div class="control-group">
-          <div class="control-label">
-            <span>Объем выгруженного трафика (Data Egress GB):</span>
-            <span class="control-value" id="metered-gb-val">120 GB</span>
+        <div style="background:#141c2b; border:1px solid var(--panel-border); padding:0.85rem 1.1rem; border-radius:8px; display:flex; align-items:center; gap:0.75rem;">
+          <input type="checkbox" id="flex-allow-check" checked onchange="updatePpuFlexCalc()" style="width:18px; height:18px; cursor:pointer;">
+          <div>
+            <div style="font-size:0.82rem; font-weight:700; color:#fff;">Разрешить перерасход (Flex Overusage Billing)</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">При превышении лимита не блокировать сервис, а списывать по $0.0015 за дополнительный запрос.</div>
           </div>
-          <input type="range" class="custom-slider" min="10" max="1000" step="10" value="120" id="metered-gb-slider" oninput="updateMeteredDashboard()">
         </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-title">Спецификация расхода по ступенчатым тарифам (Volume Tiering)</div>
-          <div class="receipt-row"><span>API Invocations ($0.0002 / req):</span> <span id="metered-api-cost">$50.00</span></div>
-          <div class="receipt-row"><span>Data Transfer ($0.08 / GB):</span> <span id="metered-gb-cost">$9.60</span></div>
-          <div class="receipt-row total"><span>Итого за текущий биллинговый цикл:</span> <span id="metered-total-cost" style="color:var(--secondary-accent);">$59.60 (~26 820 ₸)</span></div>
+          <div class="receipt-row"><span>Базовый план (100 000 запросов):</span> <span>$20.00 (~9 000 ₸)</span></div>
+          <div class="receipt-row"><span>Статус лимита:</span> <span id="flex-status-text" style="color:var(--secondary-accent);">☑ Бесперебойный режим (Flex)</span></div>
+          <div class="receipt-row total"><span>Фиксированный минимальный чек:</span> <span id="flex-min-total">$20.00 / мес</span></div>
         </div>
 
-        <div style="background:#161e2e; padding:0.75rem; border-radius:6px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
-          <span>API Key: <code style="color:#fff;">sk_live_99847291...3892</code></span>
-          <button class="sim-action-btn secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;" onclick="triggerSimPayment('Скопировано в буфер!')">Скопировать ключ</button>
-        </div>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Настройки Flex Billing сохранены!')">
+          ⚡ Сохранить конфигурацию потребления
+        </button>
       </div>
     `
   },
@@ -322,59 +385,67 @@ const modelsData = [
     id: 'razor-blade',
     num: '05',
     category: 'usage',
-    title: 'Razor & Blade (Бритва и лезвие)',
+    title: 'Razor & Blade (Оборудование за 0 ₸)',
     icon: '🪒',
-    subtitle: 'Дешевое железное ядро + высокая маржа на регулярных расходниках',
-    desc: 'Базовое оборудование продается по себестоимости или отдается в залог, а стабильная прибыль извлекается из регулярных поставок проприетарных расходных материалов.',
-    formula: 'Совокупная прибыль = (Доход от оборудования - Seбестоимость) + N месяцев × (Объем расходников × Высокая маржа)',
-    cases: ['Nespresso', 'Gillette', 'HP Printers', 'POS-терминалы + чековая лента'],
-    pros: 'Нулевой барьер покупки главного устройства, привязка клиента к экосистеме.',
-    risks: 'Появление совместимых дешевых аналогов от сторонних китайских фабрик.',
+    subtitle: 'Маркетинговые пакеты расходников (от года к месяцу)',
+    desc: 'Главный маркетинг: при подписке на годовой контракт расходных материалов само терминальное оборудование отдается БЕСПЛАТНО (за 0 ₸).',
+    formula: 'Прибыль = (Маржа с расходников × Срок подписки) - Субсидия на оборудование',
+    cases: ['Nespresso', 'Gillette', 'HP Instant Ink', 'POS-терминалы'],
+    pros: 'Нулевой барьер старта для клиентов; постоянная маржа с расходников (>70%).',
+    risks: 'Отмена подписки клиентом до того, как окупилась субсидия на железное оборудование.',
     aiValidation: [
-      'Продумать аппаратную или юридическую защиту расходника (чипы, форма, патенты)',
-      'Убедиться в высокой маржинальности повторяющегося элемента (>60%)'
+      'Зафиксировать минимальный срок подписки на расходники в договоре (12 месяцев)',
+      'Проверить маржинальность расходных наборов'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Спецификация комплекта POS-оборудования и материалов</span>
-          <span style="color:var(--amber-accent);">Модель: Hardware SaaS</span>
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">POS-Терминал за 0 ₸ при годовой подписке!</div>
+            <div class="marketing-hero-sub">Выберите комплект расходных материалов для вашей кофейни</div>
+          </div>
+          <div class="marketing-savings-badge">🎁 Терминал за 0 ₸</div>
         </div>
 
-        <table class="enterprise-table">
-          <thead>
-            <tr>
-              <th>Компонент системы</th>
-              <th>Тип платежа</th>
-              <th>Себестоимость</th>
-              <th>Цена для клиента</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Терминал WeDrink Monoblock 15"</td>
-              <td>Разово при старте</td>
-              <td>65 000 ₸</td>
-              <td><strong style="color:var(--secondary-accent);">65 000 ₸ (По себестоимости)</strong></td>
-            </tr>
-            <tr>
-              <td>Фирменная чековая лента + RFID карты (Набор 1 мес)</td>
-              <td>Ежемесячно</td>
-              <td>4 200 ₸</td>
-              <td><strong style="color:var(--primary-accent);">18 500 ₸ (Маржа 77%)</strong></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="marketing-cards-grid">
+          <!-- 1 Год (Слева) -->
+          <div class="marketing-plan-card featured" onclick="triggerSimPayment('Оформлен годовой комплект! Оборудование 0 ₸')">
+            <div class="marketing-card-badge gold">ОБОРУДОВАНИЕ 0 ₸ 🔥</div>
+            <div class="plan-card-period">1 Год Комплект</div>
+            <div class="plan-card-display-price">14 500 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Терминал в подарок (Экономия 65 000 ₸)</div>
+            <ul class="plan-card-features">
+              <li>✓ Терминал 15" БЕСПЛАТНО</li>
+              <li>✓ Чековая лента 12 мес</li>
+            </ul>
+          </div>
 
-        <div class="receipt-output-box">
-          <div class="receipt-title">Прогноз Total Cost of Ownership (TCO 1 год)</div>
-          <div class="receipt-row"><span>Маржа с продажи моноблока:</span> <span>0 ₸</span></div>
-          <div class="receipt-row"><span>Прибыль с расходников за 12 месяцев:</span> <span>171 600 ₸</span></div>
-          <div class="receipt-row total"><span>Чистая прибыль с 1 кофейни за год:</span> <span style="color:var(--secondary-accent);">171 600 ₸</span></div>
+          <!-- 6 Месяцев -->
+          <div class="marketing-plan-card" onclick="triggerSimPayment('Оформлен комплект на 6 месяцев!')">
+            <div class="marketing-card-badge">Скидка 50% на POS</div>
+            <div class="plan-card-period">6 Месяцев</div>
+            <div class="plan-card-display-price">16 500 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Терминал за 32 500 ₸ (Скидка 50%)</div>
+            <ul class="plan-card-features">
+              <li>✓ Скидка на POS 50%</li>
+              <li>✓ Лента на 6 мес</li>
+            </ul>
+          </div>
+
+          <!-- 1 Месяц -->
+          <div class="marketing-plan-card" onclick="triggerSimPayment('Оформлен 1 месяц')">
+            <div class="plan-card-period">1 Месяц</div>
+            <div class="plan-card-display-price">18 500 ₸ <span>/ мес</span></div>
+            <div class="plan-card-small-print">Терминал выкупается за 65 000 ₸</div>
+            <ul class="plan-card-features">
+              <li>✓ Без обязательств</li>
+              <li>✓ Стандартный набор</li>
+            </ul>
+          </div>
         </div>
 
-        <button class="sim-action-btn" onclick="triggerSimPayment('Заказ на поставку расходников оформлен!')">
-          ⚡ Заказать ежемесячный комплект расходников (18 500 ₸)
+        <button class="sim-action-btn" onclick="triggerSimPayment('Заказ оборудования за 0 ₸ оформлен!')">
+          ⚡ Заказать POS-терминал за 0 ₸ с комплектом
         </button>
       </div>
     `
@@ -385,41 +456,46 @@ const modelsData = [
     id: 'success-fee',
     num: '06',
     category: 'b2b',
-    title: 'Success Fee (Оплата за результат)',
+    title: 'Success Fee (Реклама за результат)',
     icon: '🎯',
-    subtitle: 'Комиссия удерживается только от реальной чистой прибыли или экономии',
-    desc: 'Сервис получает процент только тогда, когда клиент реально заработал или сэкономил деньги благодаря продукту. Полностью снимает страх рисков при продаже.',
-    formula: 'Комиссия сервиса = Подтвержденный финансовый эффект × Фиксированный процент (например 10%)',
-    cases: ['Инвестиционные брокеры', 'Оптимизация закупщиков', 'CPA-маркетинг', 'Юридические компании'],
-    pros: 'Максимально высокая конверсия в сделку; клиент не рискует собственными деньгами.',
-    risks: 'Сложность независимого аудита и прозрачного подсчета чистого эффекта.',
+    subtitle: 'Wolt / Delivery реклама: 0 ₸ за показы, 10% только с реальных покупок',
+    desc: 'Маркетинговый офер: Ресторан выставляет рекламные блюда в приложении бесплатно. Просмотры и клики стоят 0 ₸. Комиссия 10% списывается СТРОГО если клиент оформил и оплатил заказ.',
+    formula: 'Комиссия = Доставленные и оплаченные заказы × 10% (Просмотры не платящих = 0 ₸)',
+    cases: ['Wolt / Choco', 'CPA Рекламные сети', 'Booking.com', 'Uber Eats'],
+    pros: 'Рестораны соглашаются мгновенно, так как риски неоплаты рекламы отсутствуют.',
+    risks: 'Сложность независимой отслеживаемости факта оплаты заказа.',
     aiValidation: [
-      'Зафиксировать прозрачные формулы замера точки "До" и "После"',
-      'Оформить безакцептный автосписательный эскроу-договор'
+      'Показать ресторану прозрачную аналитику «Просмотры -> Купленные заказы»',
+      'Зафиксировать автосписание комиссии после подтверждения доставки'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Аудит экономии на закупках сырья (Success Fee Audit)</span>
-          <span style="color:var(--secondary-accent);">Ставка: 10% от экономии</span>
+        <div class="marketing-hero-banner" style="border-color:var(--secondary-accent);">
+          <div>
+            <div class="marketing-hero-title">Wolt Ads: Реклама блюд с гарантией продажи</div>
+            <div class="marketing-hero-sub">0 ₸ за просмотры и клики. Вы платите 10% комиссии ТОЛЬКО с оплаченных заказов!</div>
+          </div>
+          <div class="marketing-savings-badge" style="background:rgba(16,185,129,0.15); color:var(--secondary-accent); border-color:var(--secondary-accent);">
+            ✓ 0 ₸ Неоплаченные просмотры
+          </div>
         </div>
 
         <div class="control-group">
           <div class="control-label">
-            <span>Фактическая экономия кофейни за месяц:</span>
-            <span class="control-value" id="sf-saved-val">1 500 000 ₸</span>
+            <span>Продажи блюд по рекламе за месяц:</span>
+            <span class="control-value" id="sf-orders-val">120 заказов (600 000 ₸)</span>
           </div>
-          <input type="range" class="custom-slider" min="100000" max="5000000" step="100000" value="1500000" id="sf-slider" oninput="updateSfDashboard()">
+          <input type="range" class="custom-slider" min="10" max="500" step="10" value="120" id="sf-orders-slider" oninput="updateWoltAdsCalc()">
         </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Финансовый эффект клиента:</span> <span>+<span id="sf-effect-display">1 500 000</span> ₸</span></div>
-          <div class="receipt-row"><span>Чистая выгода клиента (90%):</span> <strong style="color:var(--secondary-accent);" id="sf-client-net">1 350 000 ₸</strong></div>
-          <div class="receipt-row total"><span>Комиссия сервиса (10% Success Fee):</span> <span id="sf-service-fee" style="color:var(--primary-accent);">150 000 ₸</span></div>
+          <div class="receipt-row"><span>Просмотров рекламы (15 000 человек):</span> <span style="color:var(--secondary-accent);">0 ₸ (БЕСПЛАТНО)</span></div>
+          <div class="receipt-row"><span>Выручка ресторана с проданных заказов:</span> <strong>600 000 ₸</strong></div>
+          <div class="receipt-row total"><span>Комиссия за результат (10% Success Fee):</span> <span id="sf-wolt-fee" style="color:var(--primary-accent);">60 000 ₸</span></div>
         </div>
 
-        <button class="sim-action-btn" onclick="triggerSimPayment('Счет за результат успешно списан!')">
-          ⚡ Списать 10% от подтвержденного профита
+        <button class="sim-action-btn" onclick="triggerSimPayment('Рекламная кампания за результат запущена!')">
+          ⚡ Запустить рекламу блюд без риска (0 ₸ за просмотры)
         </button>
       </div>
     `
@@ -432,39 +508,42 @@ const modelsData = [
     category: 'b2b',
     title: 'Income Share Agreement (ISA)',
     icon: '🎓',
-    subtitle: 'Обучение 0 ₸, выплата % от зарплаты только после трудоустройства',
-    desc: 'Студент учится бесплатно. Оплата начинается только при достижении целевого уровня зарплаты в виде фиксированного % от дохода в течение 12-24 месяцев.',
-    formula: 'Выплата = Фактическая зарплата выпускника × % по ISA (например 15%) в течение N месяцев',
+    subtitle: '100% бесплатное обучение! Оплата после получения оффера',
+    desc: 'Маркетинговый упор: Обучение абсолютно БЕСПЛАТНО на старте (0 ₸). Оплата 15% от зарплаты в течение 12 месяцев включается СТРОГО после трудоустройства с зарплатой от 300 000 ₸.',
+    formula: 'Выплата = 0 ₸ во время учебы. Позже: Зарплата × 15% (12 месяцев)',
     cases: ['Lambda School', 'Microverse', 'Яндекс Практикум ISA', 'Make School'],
-    pros: 'Огромный поток абитуриентов, идеальное выравнивание интересов школы и студента.',
-    risks: 'Кассовый разрыв (деньги приходят через 6-12 месяцев); риск скрытия доходов выпускниками.',
+    pros: 'Невероятный поток абитуриентов; полная уверенность студента в результатах учебы.',
+    risks: 'Кассовый разрыв до момента первых трудоустройств студентов.',
     aiValidation: [
-      'Провести скоринг абитуриентов на старте для оценки вероятности трудоустройства',
-      'Зафиксировать кап (Cap) максимальной выплаты (например не более 1.5х от базовой цены курса)'
+      'Выделить крупно зеленым цветом «0 ₸ ВО ВРЕМЯ УЧЕБЫ» на первом экране',
+      'Зафиксировать кап (Cap) максимальной суммы выплат'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Калькулятор выплат по договору ISA (Income Share Contract)</span>
-          <span style="color:var(--primary-accent);">Порог активации: >300 000 ₸/мес</span>
+        <div class="marketing-hero-banner" style="border-color:var(--secondary-accent);">
+          <div>
+            <div class="marketing-hero-title" style="font-size:1.1rem; color:var(--secondary-accent);">🎓 100% БЕСПЛАТНОЕ ОБУЧЕНИЕ IT-ПРОФЕССИЯМ</div>
+            <div class="marketing-hero-sub">Учитесь 6 месяцев без взносов. Платите только после того, как устроитесь на работу!</div>
+          </div>
+          <div style="font-size:1.3rem; font-weight:800; color:var(--secondary-accent);">0 ₸ СЕЙЧАС</div>
         </div>
 
         <div class="control-group">
           <div class="control-label">
-            <span>Зарплата выпускника после оффера:</span>
-            <span class="control-value" id="isa-sal-val">650 000 ₸ / мес</span>
+            <span>Ваша будущая зарплата в IT после оффера:</span>
+            <span class="control-value" id="isa-mkt-sal">600 000 ₸ / мес</span>
           </div>
-          <input type="range" class="custom-slider" min="200000" max="1500000" step="50000" value="650000" id="isa-sal-slider" oninput="updateIsaDashboard()">
+          <input type="range" class="custom-slider" min="300000" max="1500000" step="50000" value="600000" id="isa-mkt-slider" oninput="updateIsaMktCalc()">
         </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Взнос во время учебы:</span> <span style="color:var(--secondary-accent);">0 ₸ (Полностью бесплатно)</span></div>
-          <div class="receipt-row"><span>Условие выплат:</span> <span>15% от зарплаты в течение 12 месяцев</span></div>
-          <div class="receipt-row total"><span>Ежемесячный платеж студента:</span> <span id="isa-pay-monthly" style="color:var(--primary-accent);">97 500 ₸ / мес</span></div>
+          <div class="receipt-row"><span>Взнос при поступлении и во время учебы:</span> <strong style="color:var(--secondary-accent);">0 ₸ (БЕСПЛАТНО)</strong></div>
+          <div class="receipt-row"><span>Условие выплат:</span> <span>Только при зарплате > 300 000 ₸ (15% от дохода)</span></div>
+          <div class="receipt-row total"><span>Ежемесячный взнос ПОСЛЕ получения оффера:</span> <span id="isa-mkt-pay" style="color:var(--primary-accent);">90 000 ₸ / мес</span></div>
         </div>
 
-        <button class="sim-action-btn" onclick="triggerSimPayment('Договор ISA верифицирован и подписан!')">
-          ⚡ Подписать цифровой договор ISA (0 ₸ сегодня)
+        <button class="sim-action-btn" style="background:linear-gradient(135deg, var(--secondary-accent), #059669); color:#000;" onclick="triggerSimPayment('Заявка на бесплатное обучение по ISA принята!')">
+          ⚡ Поступить бесплатно (0 ₸ первый взнос)
         </button>
       </div>
     `
@@ -475,41 +554,170 @@ const modelsData = [
     id: 'marketplace-fee',
     num: '08',
     category: 'b2b',
-    title: 'Marketplace Take Rate (Комиссия)',
+    title: 'Marketplace Take Rate (Kaspi / WB)',
     icon: '🏪',
-    subtitle: 'Платформа сводит продавцов и покупателей, удерживая % с каждой сделки',
-    desc: 'Маркетплейс выступает гарантом расчетов, логистики и доверия, удерживая определенный процент (Take Rate) от совокупного объема проходящих продаж (GMV).',
-    formula: 'Выручка платформы = Общий оборот продаж (GMV) × Процент комиссии (Take Rate)',
-    cases: ['Kaspi.kz', 'Wildberries', 'Airbnb', 'Uber', 'App Store'],
-    pros: 'Колоссальный потенциал масштабирования без владения физическими складами.',
-    risks: 'Уход продавцов и покупателей в прямой офлайн в обход платформы.',
+    subtitle: 'Доступ к 10 000 000 покупателям Kaspi/WB за 0 ₸ стартовых взносов',
+    desc: 'Маркетинговый офер для продавцов: Регистрация и размещение товаров бесплатны. Платформа берет комиссии с продаж (Take Rate 8-12%) + ежемесячный личный кабинет и логистику.',
+    formula: 'Доход = (GMV × Take Rate %) + Подписка на кабинет (15 000 ₸) + Логистика',
+    cases: ['Kaspi.kz', 'Wildberries', 'Shopify', 'Airbnb'],
+    pros: 'Мгновенный вывод продавца на многомиллионную аудиторию покупателей.',
+    risks: 'Попытки ухода продавцов в прямые сделки.',
     aiValidation: [
-      'Рассчитать оптимальный Take Rate (обычно от 5% до 15% в зависимости от категории)',
-      'Внедрить ценности (гарантии возврат, безопасная сделка), удерживающие внутри платформы'
+      'Указать детализированный прозрачный расчет всех комиссий продавца',
+      'Продемонстрировать объемы трафика покупателей на платформе'
     ],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Спецификация комиссии платформы (Take Rate Engine)</span>
-          <span style="color:var(--secondary-accent);">Категория: HoReCa Специи</span>
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">Продавайте на Kaspi / WB: 10 млн покупателей</div>
+            <div class="marketing-hero-sub">0 ₸ за регистрацию магазина. Оплата комиссии только с проданных товаров!</div>
+          </div>
         </div>
 
-        <div class="control-group">
-          <div class="control-label">
-            <span>Сумма заказа покупателя (GMV):</span>
-            <span class="control-value" id="mp-gmv-val">250 000 ₸</span>
+        <table class="enterprise-table">
+          <thead>
+            <tr>
+              <th>Статья комиссий продавца</th>
+              <th>Условие тарифа</th>
+              <th>Сумма с заказа</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Комиссия с продажи товара (Take Rate 10%)</td>
+              <td>Списание при успешной покупке</td>
+              <td><strong>15 000 ₸</strong> (при чеке 150 000 ₸)</td>
+            </tr>
+            <tr>
+              <td>Обслуживание личного кабинета продавца</td>
+              <td>Фиксированная подписка</td>
+              <td><strong>15 000 ₸ / мес</strong></td>
+            </tr>
+            <tr>
+              <td>Хранение и логистика склада (FBO)</td>
+              <td>За единицу товара</td>
+              <td><strong>850 ₸ / заказ</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Магазин продавца успешно зарегистрирован!')">
+          ⚡ Открыть магазин на маркетплейсе (0 ₸ старт)
+        </button>
+      </div>
+    `
+  },
+
+  // 12: PREPAID TOKENS
+  {
+    id: 'prepaid-credits',
+    num: '12',
+    category: 'usage',
+    title: 'Prepaid Tokens (Токены Antigravity / Claude)',
+    icon: '🪙',
+    subtitle: 'Маркетинговые пакеты токенов (от крупных к мелким)',
+    desc: 'Оплата генераций токенами в стиле Claude/Antigravity. Слева расположен самый крупный пакет с максимальной скидкой на 1000 токенов, что монетизирует оптовый закуп.',
+    formula: 'Доход = Проданные оптовые пакеты токенов',
+    cases: ['Claude API', 'Midjourney', 'Depositphotos', 'Twilio'],
+    pros: 'Предоплата на счет сервиса; оптовые скидки стимулируют крупный чек.',
+    risks: 'Сложность интуитивного пересчета стоимости токенов в деньги.',
+    aiValidation: [
+      'Показать пересчитанную стоимость 1000 токенов на каждой карточке',
+      'Настроить авто-пополнение при балансе < 50 токенов'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">Пакеты токенов для генерации AI</div>
+            <div class="marketing-hero-sub">Покупайте токены оптом и экономьте до 50% на стоимости генераций!</div>
           </div>
-          <input type="range" class="custom-slider" min="10000" max="1000000" step="10000" value="250000" id="mp-gmv-slider" oninput="updateMpDashboard()">
+        </div>
+
+        <div class="marketing-cards-grid">
+          <!-- 2000 Токенов (Слева - самый выгодный) -->
+          <div class="marketing-plan-card featured" onclick="selectTokenPack(2000, 20)">
+            <div class="marketing-card-badge gold">САМАЯ ВЫГОДНАЯ ЦЕНА 🔥 -50%</div>
+            <div class="plan-card-period">2 000 Токенов</div>
+            <div class="plan-card-display-price">$0.01 <span>/ 1k токенов</span></div>
+            <div class="plan-card-small-print">Разовый платеж $20 (~9 000 ₸)</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 50%</li>
+              <li>✓ Доступ к Claude 3.5</li>
+            </ul>
+          </div>
+
+          <!-- 1000 Токенов -->
+          <div class="marketing-plan-card" onclick="selectTokenPack(1000, 15)">
+            <div class="marketing-card-badge">Скидка 25%</div>
+            <div class="plan-card-period">1 000 Токенов</div>
+            <div class="plan-card-display-price">$0.015 <span>/ 1k токенов</span></div>
+            <div class="plan-card-small-print">Разовый платеж $15 (~6 750 ₸)</div>
+            <ul class="plan-card-features">
+              <li>✓ Экономия 25%</li>
+            </ul>
+          </div>
+
+          <!-- 500 Токенов -->
+          <div class="marketing-plan-card" onclick="selectTokenPack(500, 10)">
+            <div class="plan-card-period">500 Токенов</div>
+            <div class="plan-card-display-price">$0.02 <span>/ 1k токенов</span></div>
+            <div class="plan-card-small-print">Разовый платеж $10 (~4 500 ₸)</div>
+          </div>
+
+          <!-- 100 Токенов -->
+          <div class="marketing-plan-card" onclick="selectTokenPack(100, 5)">
+            <div class="plan-card-period">100 Токенов</div>
+            <div class="plan-card-display-price">$0.05 <span>/ 1k токенов</span></div>
+            <div class="plan-card-small-print">Стартовый пакет $5 (~2 250 ₸)</div>
+          </div>
+        </div>
+
+        <button class="sim-action-btn" onclick="triggerSimPayment('Пакет токенов зачислен на баланс!')">
+          ⚡ Пополнить баланс токенов
+        </button>
+      </div>
+    `
+  },
+
+  // 13: LIFETIME ACCESS
+  {
+    id: 'lifetime',
+    num: '13',
+    category: 'sub',
+    title: 'Lifetime Access (Экономия 180 000 ₸)',
+    icon: '♾️',
+    subtitle: 'Маркетинговый офер: выкуп подписки навсегда с дисконтом',
+    desc: 'Маркетинговая подача: Показываем клиенту сколько он потратит за 4 года подписки (480 000 ₸), и предлагаем выкупить вечную лицензию сегодня за 300 000 ₸, сэкономив 180 000 ₸ навсегда.',
+    formula: 'Выгода клиента = (Месячный чек × 48 месяцев) - Единоразовая цена LTD',
+    cases: ['AppSumo', 'Lifetime Deals', 'Курсы с вечным доступом'],
+    pros: 'Мгновенный крупный приток денег на счет; высокая конверсия преданных пользователей.',
+    risks: 'Отсутствие повторных платежей в будущем от этого клиента.',
+    aiValidation: [
+      'Показать калькулятор экономии наглядно в цифрах на главном баннере',
+      'Указать лимит доступных вечных лицензий (осталось 5 штук)'
+    ],
+    renderWidget: () => `
+      <div class="simulator-card">
+        <div class="marketing-hero-banner" style="border-color:var(--amber-accent);">
+          <div>
+            <div class="marketing-hero-title">🔥 СЭКОНОМЬТЕ 180 000 ₸ НА ПОДПИСКЕ!</div>
+            <div class="marketing-hero-sub">За 4 года подписки вы потратите 480 000 ₸. Выкупите вечный доступ один раз за 300 000 ₸!</div>
+          </div>
+          <div class="marketing-savings-badge" style="background:rgba(245,158,11,0.15); color:var(--amber-accent); border-color:var(--amber-accent);">
+            Экономия 180 000 ₸
+          </div>
         </div>
 
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Комиссия маркетплейса (12% Take Rate):</span> <strong style="color:var(--amber-accent);" id="mp-take-cost">30 000 ₸</strong></div>
-          <div class="receipt-row"><span>Эквайринг и логистика (2%):</span> <span>5 000 ₸</span></div>
-          <div class="receipt-row total"><span>Выплата поставщику на р/с:</span> <span id="mp-vendor-net" style="color:var(--secondary-accent);">215 000 ₸</span></div>
+          <div class="receipt-row"><span>Стоимость подписки за 4 года (48 мес × 10 000 ₸):</span> <span style="text-decoration:line-through; color:var(--text-dim);">480 000 ₸</span></div>
+          <div class="receipt-row"><span>Единоразовый выкуп бессрочной лицензии:</span> <strong>300 000 ₸ (Один раз)</strong></div>
+          <div class="receipt-row total"><span>Ваша чистая выгода навсегда:</span> <span style="color:var(--secondary-accent);">180 000 ₸ Экономии</span></div>
         </div>
 
-        <button class="sim-action-btn" onclick="triggerSimPayment('Транзакция проверена и выплачена поставщику!')">
-          ⚡ Провести расчет через безопасную сделку
+        <button class="sim-action-btn" style="background:linear-gradient(135deg, var(--amber-accent), #d97706); color:#000;" onclick="triggerSimPayment('Бессрочная лицензия успешно выкуплена!')">
+          ⚡ Выкупить вечный доступ и сэкономить 180 000 ₸
         </button>
       </div>
     `
@@ -522,53 +730,22 @@ const modelsData = [
     category: 'b2b',
     title: 'Setup Fee + ARR (Внедрение + Подписка)',
     icon: '🛠️',
-    subtitle: 'Разовый дорогой платеж за настройку + регулярная подписка',
-    desc: 'Стандарт для корпоративного софта (Enterprise B2B). Оплата за внедрение полностью покрывает затраты инженеров на интеграцию, а подписка приносит высокую маржу.',
-    formula: 'Первичный чек = Setup Fee (Разовое внедрение) + 1-й год ARR',
-    cases: ['Salesforce', 'SAP', '1С Enterprise', 'Сложные CRM системы'],
-    pros: 'Высокий разовый платеж покрывает стоимость привлечения (CAC); клиент крепко привязывается.',
-    risks: 'Длинный цикл интеграции (от 1 до 6 месяцев) и высокий барьер входа.',
-    aiValidation: [
-      'Составить калькулятор трудозатрат инженеров на интеграцию 1 клиента',
-      'Разбить оплату внедрения на этапы (Milestone-based Payments)'
-    ],
+    subtitle: 'Разовый чек за настройки + годовая подписка софта',
+    desc: 'Enterprise B2B модель. Разовое внедрение (350k ₸) покрывает затраты инженеров, а годовая лицензия приносит высокую рекуррентную маржу.',
+    formula: 'Первый чек = Setup Fee + 1-й год ARR',
+    cases: ['Salesforce', 'SAP', '1С Enterprise'],
+    pros: 'Высокий разовый чек полностью покрывает CAC.',
+    risks: 'Длинный цикл интеграции.',
+    aiValidation: ['Разбить внедрение на этапы с депозитом 30%'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Смета внедрения Enterprise решения (SOW Breakdown)</span>
-          <span style="color:var(--primary-accent);">Проект: WeDrink ERP Connect</span>
-        </div>
-
-        <table class="enterprise-table">
-          <thead>
-            <tr>
-              <th>Статья затрат</th>
-              <th>Тип списания</th>
-              <th>Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Интеграция 1С и настройка серверов (Setup Fee)</td>
-              <td>Разово при старте</td>
-              <td><strong>350 000 ₸</strong></td>
-            </tr>
-            <tr>
-              <td>Годовая корпоративная лицензия софта (ARR)</td>
-              <td>Ежегодно</td>
-              <td><strong>180 000 ₸ / год</strong></td>
-            </tr>
-          </tbody>
-        </table>
-
+        <div class="sim-section-title"><span>Enterprise Внедрение софта</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Депозит при подписании (30% Setup Fee):</span> <span>105 000 ₸</span></div>
-          <div class="receipt-row total"><span>Первоначальный платеж проекта:</span> <span style="color:var(--secondary-accent);">530 000 ₸</span></div>
+          <div class="receipt-row"><span>Настройка и интеграция (Setup Fee):</span> <span>350 000 ₸</span></div>
+          <div class="receipt-row"><span>Годовая подписка (ARR):</span> <span>180 000 ₸ / год</span></div>
+          <div class="receipt-row total"><span>Первоначальный счет:</span> <span style="color:var(--secondary-accent);">530 000 ₸</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Смета и договор внедрения утверждены!')">
-          ⚡ Утвердить смету и начать интеграцию
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Смета внедрения утверждена!')">⚡ Утвердить проект внедрения</button>
       </div>
     `
   },
@@ -578,34 +755,28 @@ const modelsData = [
     id: 'b2b2c',
     num: '10',
     category: 'b2b',
-    title: 'B2B2C (Корпоративная оплата)',
+    title: 'B2B2C (Корпоративный контракт)',
     icon: '🏢',
-    subtitle: 'Платит головной офис (B2B), а пользуются сотрудники (C)',
-    desc: 'Один крупный контракт с дирекцией или HR-департаментом открывает доступ к тысячам конечных пользователей компании за один день.',
-    formula: 'Годовой чек = Корпоративный контракт × Количество филиалов/сотрудников × Оптовый тариф',
-    cases: ['Gympass', 'Корпоративное страхование ДМС', 'Skyeng Corporate', 'WeDrink HQ Contract'],
-    pros: 'Огромный объем пользователей при минимальных затратах на отдел продаж.',
-    risks: 'Высокая зависимость от продления одного крупного контракта.',
-    aiValidation: [
-      'Сформулировать четкий ценностный ROI для HR/CEO (снижение текучести, продуктивность)',
-      'Внедрить дашборд вовлеченности сотрудников для демонстрации ценности перед продлением'
-    ],
+    subtitle: 'Платит Head Office за 500+ сотрудников со скидкой 60%',
+    desc: 'Маркетинговый упор на экономию для HR/CEO: Вместо покупки лицензий рознично по 9 900 ₸, головной офис покупает контракт на все 500 сотрудников по 3 900 ₸/мес.',
+    formula: 'Контракт = 500 сотрудников × 3 900 ₸/мес = 1 950 000 ₸/мес',
+    cases: ['Gympass', 'Skyeng Corporate', 'WeDrink HQ'],
+    pros: 'Получение тысяч пользователей за 1 сделку.',
+    risks: 'Зависимость от продления 1 клиента.',
+    aiValidation: ['Показать HR дашборд активности сотрудников'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Спецификация корпоративного контракта B2B2C</span>
-          <span style="color:var(--secondary-accent);">Заказчик: WeDrink HQ (450 точек)</span>
+        <div class="marketing-hero-banner">
+          <div>
+            <div class="marketing-hero-title">B2B2C Корпоративный контракт на 500 филиалов</div>
+            <div class="marketing-hero-sub">Экономия 60% для головного офиса компании!</div>
+          </div>
         </div>
-
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Количество точек в сети:</span> <span>450 филиалов</span></div>
-          <div class="receipt-row"><span>Оптовая корпоративная ставка за точку:</span> <span>4 500 ₸ / мес (вместо 9 900 ₸)</span></div>
-          <div class="receipt-row total"><span>Ежемесячный счет на Головной Офис:</span> <span style="color:var(--secondary-accent);">2 025 000 ₸ / мес</span></div>
+          <div class="receipt-row"><span>Розничная цена (500 точек × 9 900 ₸):</span> <span style="text-decoration:line-through;">4 950 000 ₸</span></div>
+          <div class="receipt-row total"><span>Единый B2B2C контракт HQ (3 900 ₸/точку):</span> <span style="color:var(--secondary-accent);">1 950 000 ₸ / мес</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Единый B2B2C контракт успешно подписан!')">
-          ⚡ Подписать контракт на всю сеть (450 точек)
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('B2B2C контракт на 500 точек подписан!')">⚡ Подписать B2B2C контракт</button>
       </div>
     `
   },
@@ -615,156 +786,23 @@ const modelsData = [
     id: 'white-label',
     num: '11',
     category: 'b2b',
-    title: 'White Label (Лицензирование брендинга)',
+    title: 'White Label (Лицензирование)',
     icon: '🏷️',
-    subtitle: 'Готовый софт продается партнерам для запуска под их брендом',
-    desc: 'Платформа предоставляет готовое технологическое ядро, а партнер ставит свой логотип, домен и продает софт своей аудитории.',
-    formula: 'Доход = Паушальный взнос за запуск + Ежемесячное лицензионное роялти',
-    cases: ['White Label банкинг', 'Конструкторы приложений', 'Франшизы софта'],
-    pros: 'Партнеры сами берут на себя маркетинг и продажи на своих локальных рынках.',
-    risks: 'Размытие прямого контакта с конечным клиентом.',
-    aiValidation: [
-      'Создать панель авто-настройки брендинга (домены, логотипы, цвета)',
-      'Зафиксировать жесткие стандарты техподдержки первого уровня со стороны партнера'
-    ],
+    subtitle: 'Запуск софта под своим брендом за 1 день',
+    desc: 'Партнер покупает готовое ядро софта и запускает сервис под своим доменом и логотипом.',
+    formula: 'Доход = Взнос за запуск + Ежемесячное роялти',
+    cases: ['White Label банкинг', 'Франшизы софта'],
+    pros: 'Партнеры сами продают софт на своих рынках.',
+    risks: 'Размытие прямого контакта с клиентами.',
+    aiValidation: ['Настроить панель брендинга'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Конфигуратор White Label платформы</span>
-          <span style="color:var(--primary-accent);">Домен: pos.mybrand.kz</span>
-        </div>
-
-        <div class="control-group">
-          <label class="control-label">Укажите название вашего бренда:</label>
-          <input type="text" value="Apex Coffee POS" style="background:#161e2e; border:1px solid var(--panel-border); padding:0.5rem 0.8rem; border-radius:6px; color:#fff; font-size:0.8rem;">
-        </div>
-
+        <div class="sim-section-title"><span>White Label Лицензирование</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Паушальный взнос (Запуск White Label):</span> <span>450 000 ₸</span></div>
-          <div class="receipt-row"><span>Ежемесячное лицензионное роялти:</span> <span>45 000 ₸ / мес</span></div>
-          <div class="receipt-row total"><span>Итого за старт собственного софта:</span> <span style="color:var(--secondary-accent);">495 000 ₸</span></div>
+          <div class="receipt-row"><span>Запуск сервиса под вашим брендом:</span> <span>450 000 ₸</span></div>
+          <div class="receipt-row total"><span>Итого за старт:</span> <span style="color:var(--secondary-accent);">450 000 ₸</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('White Label платформа собрана!')">
-          ⚡ Сгенерировать White Label дистрибутив
-        </button>
-      </div>
-    `
-  },
-
-  // 12: PREPAID CREDITS
-  {
-    id: 'prepaid-credits',
-    num: '12',
-    category: 'usage',
-    title: 'Prepaid Credits (Предоплаченные токены)',
-    icon: '🪙',
-    subtitle: 'Покупка пакетов внутренней валюты заранее, списание по мере работы',
-    desc: 'Клиент покупает токены/кредиты авансом. Это сглаживает психологическое сопротивление тратам и дает компании чистый авансовый Cash Flow.',
-    formula: 'Доход = Проданные пакеты токенов + Доход от несписанных остатков (Breakage)',
-    cases: ['Midjourney', 'Depositphotos', 'Игровые валюты', 'Twilio Credits'],
-    pros: 'Предоплата на счет компании; 10-15% токенов сгорает или не расходуется вовсе.',
-    risks: 'Необходимость простого пересчета баланса токенов в реальные деньги.',
-    aiValidation: [
-      'Настроить авто-пополнение (Auto-topup) при снижении баланса ниже порога',
-      'Продумать бонусы за покупку крупных пакетов токенов'
-    ],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Баланс пакетов кредитов генерации</span>
-          <span style="color:var(--secondary-accent);" id="credits-balance-display">Баланс: 500 Токенов</span>
-        </div>
-
-        <div class="tiers-interactive-grid">
-          <div class="interactive-tier-card" onclick="selectCreditPack(100, 5000)">
-            <div class="tier-name">100 Токенов</div>
-            <div class="tier-price">5 000 ₸</div>
-          </div>
-          <div class="interactive-tier-card active" onclick="selectCreditPack(500, 20000)">
-            <div class="tier-badge">Выгодно +20%</div>
-            <div class="tier-name">500 Токенов</div>
-            <div class="tier-price">20 000 ₸</div>
-          </div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Пакет токенов пополнен!')">
-          ⚡ Пополнить баланс токенов
-        </button>
-      </div>
-    `
-  },
-
-  // 13: LIFETIME ACCESS
-  {
-    id: 'lifetime',
-    num: '13',
-    category: 'sub',
-    title: 'Lifetime Access (Пожизненный доступ)',
-    icon: '♾️',
-    subtitle: 'Один крупный разовый платёж за вечную лицензию без подписок',
-    desc: 'Используется для быстрого сбора инвестиций от ранних фанатов (Early Adopters) на запуске продукта.',
-    formula: 'Разовый приток = Количество проданных LTD лицензий × Крупный чек LTD',
-    cases: ['AppSumo', 'Lifetime SaaS Deals', 'Курсы с вечным доступом'],
-    pros: 'Мгновенный приток капитала (Cash Flow) на ранней стадии продукта.',
-    risks: 'Отсутствие рекуррентных платежей в будущем при вечных затратах на сервера.',
-    aiValidation: [
-      'Установить жесткий лимит на количество продаваемых вечных лицензий',
-      'Убедиться, что затраты на обслуживание 1 пользователя за 3 года ниже цены LTD'
-    ],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Лимитированная серия Lifetime Лицензий</span>
-          <span style="color:var(--amber-accent);">Осталось 3 из 50 лицензий</span>
-        </div>
-
-        <div class="receipt-output-box">
-          <div class="receipt-row"><span>Тип лицензии:</span> <strong>Unlimited Lifetime Pass</strong></div>
-          <div class="receipt-row"><span>Обновления софта:</span> <span>Вечно включены</span></div>
-          <div class="receipt-row total"><span>Разовый платеж за вечный доступ:</span> <span style="color:var(--secondary-accent);">120 000 ₸ (Один раз)</span></div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Пожизненная лицензия успешно приобретена!')">
-          ⚡ Купить вечную лицензию (120 000 ₸)
-        </button>
-      </div>
-    `
-  },
-
-  // 14: MEMBERSHIP
-  {
-    id: 'membership',
-    num: '14',
-    category: 'sub',
-    title: 'Membership (Клубный доступ)',
-    icon: '👑',
-    subtitle: 'Плата за статус, сообщество, связей и непубличный контент',
-    desc: 'Основная ценность — не софт, а окружение, закрытый нетворкинг и доступ к экспертам.',
-    formula: 'Выручка = Члены клуба × Ежегодный клубный взнос',
-    cases: ['Product Masters Club', 'YPO', 'Patreon', 'Soho House'],
-    pros: 'Очень высокое удержание (Retention) из-за социальных связей и авторитета.',
-    risks: 'Требуется постоянная организация ивентов и фасилитация комьюнити.',
-    aiValidation: [
-      'Определить четкие критерии отбора членов клуба (Vetting process)',
-      'Проверить ценность нетворкинга для целевой аудитории'
-    ],
-    renderWidget: () => `
-      <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Закрытый клуб основателей (Executive Membership)</span>
-          <span style="color:var(--secondary-accent);">Статус: Верифицирован</span>
-        </div>
-
-        <div class="receipt-output-box">
-          <div class="receipt-row"><span>Клубный доступ:</span> <span>Founder Executive Pass</span></div>
-          <div class="receipt-row"><span>Преимущества:</span> <span>Мастермайнды + Чат 300+ CEO</span></div>
-          <div class="receipt-row total"><span>Ежемесячный клубный взнос:</span> <span style="color:var(--primary-accent);">25 000 ₸ / мес</span></div>
-        </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Вы приняли приглашение в закрытый клуб!')">
-          ⚡ Вступить в клуб основателей
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('White Label лицензия сгенерирована!')">⚡ Запустить софт под своим брендом</button>
       </div>
     `
   },
@@ -776,32 +814,21 @@ const modelsData = [
     category: 'sub',
     title: 'Платная сертификация',
     icon: '📜',
-    subtitle: 'Курс бесплатный, но верифицированный диплом оплачивается отдельно',
-    desc: 'Модель EdTech массового охвата. Знания отдаются бесплатно, а документ для работодателя монетизируется.',
-    formula: 'Доход = Бесплатные студенты × Конверсия в диплом × Стоимость экзамена',
-    cases: ['Coursera', 'edX', 'AWS Certifications', 'Scrum Alliance'],
-    pros: 'Огромный бесплатный воронковый охват студентов по всему миру.',
-    risks: 'Низкая конверсия, если диплом не имеет официального авторитета на рынке.',
-    aiValidation: [
-      'Убедиться в признании диплома работодателями ниши',
-      'Внедрить прокторинг (контроль честности сдачи экзамена)'
-    ],
+    subtitle: 'Бесплатное обучение + оплата официального диплома',
+    desc: 'Знания отдаются бесплатно, а официальный верифицированный диплом монетизируется.',
+    formula: 'Доход = Студенты × Конверсия в диплом × 19 900 ₸',
+    cases: ['Coursera', 'edX', 'AWS Certifications'],
+    pros: 'Огромный воронковый охват студентов.',
+    risks: 'Низкая конверсия без авторитета на рынке.',
+    aiValidation: ['Внедрить прокторинг экзамена'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Верификация знаний и выдача диплома</span>
-          <span style="color:var(--secondary-accent);">Proctoring: Active</span>
-        </div>
-
+        <div class="sim-section-title"><span>Выдача официального диплома</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Обучение на курсе:</span> <span style="color:var(--secondary-accent);">0 ₸ (БЕСПЛАТНО)</span></div>
-          <div class="receipt-row"><span>Официальный диплом с внесением в реестр:</span> <span>19 900 ₸</span></div>
-          <div class="receipt-row total"><span>Итого за верификацию:</span> <span>19 900 ₸</span></div>
+          <div class="receipt-row"><span>Курс обучения:</span> <span style="color:var(--secondary-accent);">0 ₸ (Бесплатно)</span></div>
+          <div class="receipt-row total"><span>Верифицированный диплом:</span> <span>19 900 ₸</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Диплом верифицирован и занесен в реестр!')">
-          ⚡ Оплатить верифицированный диплом
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Диплом верифицирован!')">⚡ Оплатить верифицированный диплом</button>
       </div>
     `
   },
@@ -811,50 +838,23 @@ const modelsData = [
     id: 'priority-lane',
     num: '16',
     category: 'usage',
-    title: 'Priority & Speed (Приоритетная скорость)',
+    title: 'Priority & Speed (Приоритет)',
     icon: '🚀',
-    subtitle: 'Базовый сервис в общей очереди, платный — мгновенная скорость',
-    desc: 'Монетизирует фактор времени и срочности для профессионалов, не ограничивая доступ базовым пользователям.',
-    formula: 'Доход = Количество срочных пользователей × Надбавка за выделенный сервер',
-    cases: ['Fast Pass Диснейленд', 'ChatGPT Turbo', 'Fast Track аэропорты'],
-    pros: 'Высокая маржинальность; за скорость готовы платить самые платящие клиенты.',
-    risks: 'Раздражение бесплатных пользователей, если общая очередь слишком медленная.',
-    aiValidation: [
-      'Настроить четкий гарантийный latency (например <0.3 сек против 4.5 сек)',
-      'Обеспечить инфраструктуру выделенных VIP серверов'
-    ],
+    subtitle: 'Выделенная скорость отклика (0.3 сек против 4.5 сек)',
+    desc: 'Бесплатные пользователи ждут в общей очереди, платные клиенты получают мгновенную скорость.',
+    formula: 'Доход = Срочные юзеры × 4 900 ₸/мес',
+    cases: ['ChatGPT Plus Turbo', 'Fast Track'],
+    pros: 'Высокая маржинальность; профессионалы ценят время.',
+    risks: 'Раздражение общей очереди.',
+    aiValidation: ['Гарантировать latency < 0.3 сек'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Мониторинг загрузки серверов генерации</span>
-          <span style="color:var(--amber-accent);">Загрузка общего узла: 89%</span>
+        <div class="sim-section-title"><span>Скорость отклика серверов</span></div>
+        <div class="receipt-output-box">
+          <div class="receipt-row"><span>Общая очередь (Free):</span> <span>4.5 секунды</span></div>
+          <div class="receipt-row total"><span>Priority Pass (VIP Node):</span> <span style="color:var(--secondary-accent);">0.3 секунды (4 900 ₸/мес)</span></div>
         </div>
-
-        <table class="enterprise-table">
-          <thead>
-            <tr>
-              <th>Тарифный поток</th>
-              <th>Скорость отклика</th>
-              <th>Приоритет GPU</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Общая очередь (Free)</td>
-              <td>4.8 секунды</td>
-              <td>Низкий (в очереди)</td>
-            </tr>
-            <tr>
-              <td><strong style="color:var(--secondary-accent);">Fast-Lane Priority Pass</strong></td>
-              <td><strong style="color:var(--secondary-accent);">0.3 секунды</strong></td>
-              <td><strong style="color:var(--secondary-accent);">Выделенный VIP узел</strong></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Приоритетная скорость активирована!')">
-          ⚡ Активировать Priority Speed Pass (4 900 ₸/мес)
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Priority Pass активирован!')">⚡ Активировать Priority Speed Pass</button>
       </div>
     `
   },
@@ -864,85 +864,47 @@ const modelsData = [
     id: 'rental-lease',
     num: '17',
     category: 'usage',
-    title: 'Rental / Lease (Аренда и Лизинг)',
+    title: 'Rental / Lease (Аренда активов)',
     icon: '🚲',
-    subtitle: 'Временное пользование активом без выкупа в собственность',
-    desc: 'Превращает разовые крупные капвложения клиента в мелкие ежемесячные операционные расходы.',
-    formula: 'Выручка = Время пользования × Почасовая или посуточная ставка аренды',
-    cases: ['Whoosh', 'Uber', 'Аренда серверов', 'Лизинг оборудования'],
-    pros: 'Доступность дорогих активов для массового рынка; частые повторные платежи.',
-    risks: 'Износ, амортизация и поломка физического оборудования.',
-    aiValidation: [
-      'Рассчитать срок полной окупаемости 1 единицы техники с учетом ремонта',
-      'Зафиксировать условия страхования и залоговых депозитов'
-    ],
+    subtitle: 'Почасовая или посуточная ставка пользования активом',
+    desc: 'Превращает крупные капвложения в мелкие операционные расходы.',
+    formula: 'Выручка = Время аренды × Ставка',
+    cases: ['Whoosh', 'Uber', 'Лизинг серверов'],
+    pros: 'Доступность дорогих активов.',
+    risks: 'Износ оборудования.',
+    aiValidation: ['Зафиксировать страховку активов'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Калькулятор аренды коммерческого оборудования</span>
-          <span style="color:var(--primary-accent);">Срок: 12 месяцев</span>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">
-            <span>Длительность аренды (в месяцах):</span>
-            <span class="control-value" id="lease-months-val">12 месяцев</span>
-          </div>
-          <input type="range" class="custom-slider" min="1" max="36" value="12" id="lease-slider" oninput="updateLeaseDashboard()">
-        </div>
-
+        <div class="sim-section-title"><span>Аренда оборудования</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Стоимость оборудования при покупке:</span> <span>1 200 000 ₸</span></div>
-          <div class="receipt-row total"><span>Ежемесячный платеж по аренде:</span> <span id="lease-monthly-cost" style="color:var(--secondary-accent);">45 000 ₸ / мес</span></div>
+          <div class="receipt-row total"><span>Ежемесячная аренда:</span> <span style="color:var(--secondary-accent);">45 000 ₸ / мес</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Договор аренды успешно оформлен!')">
-          ⚡ Оформить аренду оборудования
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Аренда оформлена!')">⚡ Оформить аренду оборудования</button>
       </div>
     `
   },
 
-  // 18: HIDDEN REVENUE / ADS
+  // 18: HIDDEN REVENUE
   {
     id: 'hidden-revenue',
     num: '18',
     category: 'alt',
-    title: 'Hidden Revenue / Ads (Рекламная модель)',
+    title: 'Hidden Revenue / Ads (Реклама)',
     icon: '👁️',
-    subtitle: 'Пользователь не платит 0 ₸, за него платят рекламодатели',
-    desc: 'Продукт полностью бесплатен для аудитории. Выручка формируется за счет продажи внимания пользователей рекламодателям.',
-    formula: 'Доход = (Количество показов / 1000) × Ставка eCPM рекламодателя',
-    cases: ['Google', 'TikTok', 'Meta / Instagram', 'Бесплатные игры'],
-    pros: 'Взрывной рост базы пользователей из-за отсутствия барьера оплаты.',
-    risks: 'Риск ухудшения UX из-за перегрузки интерфейса рекламой.',
-    aiValidation: [
-      'Оценить необходимый объем MAU (обычно > 100k) для окупаемости',
-      'Настроить точный таргетинг рекламы для повышения eCPM'
-    ],
+    subtitle: 'Пользователь платит 0 ₸, за него платят рекламодатели',
+    desc: 'Продукт бесплатен. Доход генерируется от показов рекламы.',
+    formula: 'Доход = (Показы / 1000) × eCPM',
+    cases: ['Google', 'TikTok', 'Meta'],
+    pros: 'Взрывной рост аудитории.',
+    risks: 'Конфликт с UX.',
+    aiValidation: ['Оценить MAU > 100k'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Монетизация рекламного трафика (eCPM Network)</span>
-          <span style="color:var(--secondary-accent);">Сеть: Google AdX</span>
-        </div>
-
-        <div class="control-group">
-          <div class="control-label">
-            <span>Просмотры страниц в месяц:</span>
-            <span class="control-value" id="ads-views-val">350 000 просмотров</span>
-          </div>
-          <input type="range" class="custom-slider" min="10000" max="1000000" step="10000" value="350000" id="ads-slider" oninput="updateAdsDashboard()">
-        </div>
-
+        <div class="sim-section-title"><span>Рекламный доход (eCPM Engine)</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Средняя ставка eCPM:</span> <span>1 600 ₸ за 1000 показов</span></div>
-          <div class="receipt-row total"><span>Выплата от рекламодателей:</span> <span id="ads-net-total" style="color:var(--secondary-accent);">560 000 ₸ / мес</span></div>
+          <div class="receipt-row total"><span>Выплата от рекламодателей:</span> <span style="color:var(--secondary-accent);">560 000 ₸ / мес</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Рекламный доход выведен на счет!')">
-          ⚡ Симулировать выплату рекламной сети
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Рекламный доход выведен!')">⚡ Симулировать выплату рекламной сети</button>
       </div>
     `
   },
@@ -952,34 +914,22 @@ const modelsData = [
     id: 'data-monetization',
     num: '19',
     category: 'alt',
-    title: 'Data Monetization (Продажа аналитики)',
+    title: 'Data Monetization (Продажа данных)',
     icon: '📊',
     subtitle: 'Агрегация и продажа аналитики рынка B2B-клиентам',
-    desc: 'Обезличенные данные о поведении пользователей упаковываются в дорогостоящие аналитические отчеты для крупных брендов.',
-    formula: 'Доход = Продажи подписок на аналитический терминал B2B клиентам',
-    cases: ['2GIS Analytics', 'Nielsen', 'Bloomberg Terminal', 'Foursquare Data'],
-    pros: 'Высокая маржинальность продажи данных поверх действующего бизнеса.',
-    risks: 'Строгие законы о персональных данных (GDPR / Законы РК).',
-    aiValidation: [
-      'Убедиться в 100% анонимизации данных',
-      'Проверить ценность отчетов для корпоративных аналитиков'
-    ],
+    desc: 'Обезличенные данные упаковываются в отчеты для крупных брендов.',
+    formula: 'Доход = Продажа B2B отчетов',
+    cases: ['2GIS Analytics', 'Nielsen'],
+    pros: 'Высокая маржа.',
+    risks: 'Законы о персональных данных.',
+    aiValidation: ['100% анонимизация данных'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Выгрузка агрегированного аналитического отчета</span>
-          <span style="color:var(--primary-accent);">Статус: Анонимизировано</span>
-        </div>
-
+        <div class="sim-section-title"><span>Продажа B2B аналитики</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Объем выборки:</span> <span>Данные 450 кофеен за 12 месяцев</span></div>
-          <div class="receipt-row"><span>Покупатель:</span> <span>Дистрибьютор кофейного зерна</span></div>
           <div class="receipt-row total"><span>Стоимость отчета:</span> <span style="color:var(--secondary-accent);">750 000 ₸</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Аналитический отчет успешно продан!')">
-          ⚡ Выгрузить аналитический B2B отчет
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Отчет продан!')">⚡ Выгрузить B2B аналитический отчет</button>
       </div>
     `
   },
@@ -991,32 +941,20 @@ const modelsData = [
     category: 'alt',
     title: 'App Marketplace (Магазин плагинов)',
     icon: '🧩',
-    subtitle: 'Платформа получает 15-30% с продаж сторонних разработчиков',
-    desc: 'Внешние разработчики создают дополнения для вашей платформы, а вы удерживаете комиссию с каждой продажи плагина.',
-    formula: 'Доход = Продажи плагинов сторонних девелоперов × 30% комиссии платформы',
-    cases: ['Shopify App Store', 'WordPress', 'Salesforce AppExchange'],
-    pros: 'Сторонние разработчики бесплатно расширяют функционал вашего продукта.',
-    risks: 'Требуется создание открытых API и поддержка комьюнити девелоперов.',
-    aiValidation: [
-      'Разработать открытый SDK и документацию API',
-      'Зафиксировать разделение доходов 70/30'
-    ],
+    subtitle: 'Платформа получает 30% с продаж сторонних девелоперов',
+    desc: 'Разработчики создают дополнения, а платформа удерживает комиссию.',
+    formula: 'Доход = Продажи плагинов × 30%',
+    cases: ['Shopify App Store', 'WordPress'],
+    pros: 'Бесплатное расширение экосистемы.',
+    risks: 'Нужен открытый SDK.',
+    aiValidation: ['Разработать API SDK'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Биллинг магазина плагинов (App Marketplace)</span>
-          <span style="color:var(--secondary-accent);">Доля платформы: 30%</span>
-        </div>
-
+        <div class="sim-section-title"><span>App Store Комиссия</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Продажи плагина "WhatsApp Рассылка" (100 продаж):</span> <span>600 000 ₸</span></div>
-          <div class="receipt-row"><span>Комиссия нашей платформы (30%):</span> <strong style="color:var(--secondary-accent);">180 000 ₸</strong></div>
-          <div class="receipt-row total"><span>Выплата стороннему разработчику:</span> <span>420 000 ₸</span></div>
+          <div class="receipt-row total"><span>Доля платформы (30%):</span> <span style="color:var(--secondary-accent);">180 000 ₸</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Расчет магазина плагинов проведен!')">
-          ⚡ Провести расчет с разработчиком плагина
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Продажа плагина проведена!')">⚡ Симулировать сделку в App Store</button>
       </div>
     `
   },
@@ -1028,32 +966,20 @@ const modelsData = [
     category: 'alt',
     title: 'Спонсорство и Брендинг',
     icon: '🎗️',
-    subtitle: 'Крупный бренд финансирует проект взамен на интеграцию',
-    desc: 'Генеральный спонсор платит крупную фиксированную сумму за эксклюзивное присутствие своего бренда в вашем продукте.',
-    formula: 'Доход = Фиксированный контракт со спонсором на квартал/год',
-    cases: ['Хакатоны RedBull', 'Спецпроекты VC.ru', 'Бесплатный Wi-Fi в метро'],
-    pros: 'Крупные платежи сразу; пользователи получают продукт бесплатно.',
-    risks: 'Зависимость от маркетинговых бюджетов нескольких крупных спонсоров.',
-    aiValidation: [
-      'Сформировать прозрачный медиакит с охватами целевой аудитории',
-      'Зафиксировать требования к брендингу'
-    ],
+    subtitle: 'Крупный бренд субсидирует сервис за интеграцию',
+    desc: 'Фиксированный контракт со спонсором на квартал/год.',
+    formula: 'Доход = Спонсорский пакет',
+    cases: ['Хакатоны RedBull', 'VC.ru'],
+    pros: 'Крупные чеки сразу.',
+    risks: 'Поиск спонсоров.',
+    aiValidation: ['Сформировать медиакит'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Спецификация спонсорского контракта</span>
-          <span style="color:var(--amber-accent);">Спонсор: Банковский бренд</span>
-        </div>
-
+        <div class="sim-section-title"><span>Спонсорский пакет</span></div>
         <div class="receipt-output-box">
-          <div class="receipt-row"><span>Формат:</span> <span>Генеральный спонсор ивента / раздела</span></div>
-          <div class="receipt-row"><span>Срок интеграции:</span> <span>3 месяца</span></div>
-          <div class="receipt-row total"><span>Сумма спонсорского контракта:</span> <span style="color:var(--secondary-accent);">1 800 000 ₸</span></div>
+          <div class="receipt-row total"><span>Спонсорский контракт:</span> <span style="color:var(--secondary-accent);">1 800 000 ₸ / квартал</span></div>
         </div>
-
-        <button class="sim-action-btn" onclick="triggerSimPayment('Спонсорский контракт активирован!')">
-          ⚡ Активировать спонсорский пакет
-        </button>
+        <button class="sim-action-btn" onclick="triggerSimPayment('Спонсорский пакет активирован!')">⚡ Активировать спонсорский контракт</button>
       </div>
     `
   },
@@ -1065,32 +991,22 @@ const modelsData = [
     category: 'alt',
     title: 'Pay What You Want (Donation)',
     icon: '🎁',
-    subtitle: 'Пользователь сам решает сколько заплатить за продукт',
-    desc: 'Добровольные пожертвования и чаевые. Опирается на высокую лояльность аудитории и благодарность за полезный контент/софт.',
-    formula: 'Доход = Количество пользователей × Средний размер чаевых (Tip)',
-    cases: ['Wikipedia', 'Radiohead', 'Buy Me a Coffee', 'Humble Bundle'],
-    pros: 'Высочайшая лояльность сообщества, отсутствие барьера покупки.',
-    risks: 'Нестабильность доходов; 80-90% пользователей выбирает 0.',
-    aiValidation: [
-      'Настроить подсказки сумм (пресеты 500 ₸, 2000 ₸, 5000 ₸)',
-      'Внедрить публичную доску благодарности меценатам'
-    ],
+    subtitle: 'Пользователь сам выбирает сумму пожертвования',
+    desc: 'Добровольные чаевые и донаты на основе благодарности.',
+    formula: 'Доход = Донаты пользователей',
+    cases: ['Wikipedia', 'Buy Me a Coffee'],
+    pros: 'Лояльность сообщества.',
+    risks: 'Нестабильность доходов.',
+    aiValidation: ['Настроить пресеты сумм'],
     renderWidget: () => `
       <div class="simulator-card">
-        <div class="sim-section-title">
-          <span>Поддержка независимого проекта (Tip Jar)</span>
-          <span style="color:var(--secondary-accent);" id="pwyw-val-display">Выбрано: 2 000 ₸</span>
-        </div>
-
+        <div class="sim-section-title"><span>Донаты и Чаевые</span></div>
         <div style="display:flex; gap:0.5rem;">
           <button class="sim-action-btn secondary" style="flex:1;" onclick="setPwywVal(500)">500 ₸ ☕</button>
           <button class="sim-action-btn" style="flex:1;" onclick="setPwywVal(2000)">2 000 ₸ 🍕</button>
           <button class="sim-action-btn secondary" style="flex:1;" onclick="setPwywVal(5000)">5 000 ₸ 🚀</button>
         </div>
-
-        <button class="sim-action-btn" style="background:var(--secondary-accent); color:#000;" onclick="triggerSimPayment('Огромное спасибо за поддержку проекта!')">
-          ❤️ Отправить поддержку (<span id="pwyw-btn-val">2 000 ₸</span>)
-        </button>
+        <button class="sim-action-btn" style="background:var(--secondary-accent); color:#000;" onclick="triggerSimPayment('Донат отправлен!')">❤️ Отправить донат (<span id="pwyw-btn-val">2 000 ₸</span>)</button>
       </div>
     `
   }
@@ -1148,7 +1064,7 @@ function loadModel(modelId) {
 
   renderModelPills();
 
-  // Render Left Panel (75%)
+  // Render Left Stage (75%)
   const stageHeader = document.getElementById('stage-header');
   stageHeader.innerHTML = `
     <div class="model-title-wrap">
@@ -1163,14 +1079,14 @@ function loadModel(modelId) {
   const stageBody = document.getElementById('stage-body');
   stageBody.innerHTML = model.renderWidget();
 
-  // Render Right Panel (25%)
+  // Render Right Sidebar (25%)
   const sidebarTitle = document.getElementById('sidebar-title');
-  sidebarTitle.innerHTML = `<span>📊</span> Бизнес-разбор: ${model.title.split('(')[0]}`;
+  sidebarTitle.innerHTML = `<span>📊</span> Маркетинг & Бизнес-разбор`;
 
   const sidebarBody = document.getElementById('sidebar-body');
   sidebarBody.innerHTML = `
     <div class="info-card-block">
-      <div class="info-block-title">📌 Суть и механика модели</div>
+      <div class="info-block-title">📌 Продуктовая механика и маркетинг</div>
       <p class="info-block-text">${model.desc}</p>
     </div>
 
@@ -1180,19 +1096,19 @@ function loadModel(modelId) {
     </div>
 
     <div class="info-card-block">
-      <div class="info-block-title">🏢 Где применяется на рынке</div>
+      <div class="info-block-title">🏢 Где применяется в мире</div>
       <div class="example-tags-wrap">
         ${model.cases.map(c => `<span class="example-tag">${c}</span>`).join('')}
       </div>
     </div>
 
     <div class="info-card-block">
-      <div class="info-block-title" style="color:var(--secondary-accent);">👍 Главный плюс для бизнеса</div>
+      <div class="info-block-title" style="color:var(--secondary-accent);">👍 Маркетинговый плюс для продаж</div>
       <p class="info-block-text" style="color:var(--text-main);">${model.pros}</p>
     </div>
 
     <div class="info-card-block">
-      <div class="info-block-title" style="color:#ff6b6b;">⚠️ Ключевой риск и подводный камень</div>
+      <div class="info-block-title" style="color:#ff6b6b;">⚠️ Риск и уязвимость конверсии</div>
       <p class="info-block-text" style="color:var(--text-muted);">${model.risks}</p>
     </div>
 
@@ -1205,119 +1121,64 @@ function loadModel(modelId) {
   `;
 }
 
-// Widget Handlers
-function setSubCycle(cycle) {
+// Widget Selectors
+function selectSubPeriod(period) {
   playClick();
-  subCycle = cycle;
+  subSelectedPeriod = period;
   loadModel('subscription');
 }
 
-function toggleFreemiumEnterprise() {
-  playChime(659.25, 0.3);
-  const status = document.getElementById('freemium-badge-status');
-  const projVal = document.getElementById('freemium-proj-val');
-  const projBar = document.getElementById('freemium-proj-bar');
-  const btn = document.getElementById('freemium-upgrade-btn');
-
-  if (status.textContent.includes('FREE')) {
-    status.textContent = 'ТЕКУЩИЙ ТАРИФ: PRO ENTERPRISE';
-    status.style.color = 'var(--secondary-accent)';
-    projVal.textContent = 'Безлимитно (PRO Active)';
-    projBar.style.background = 'var(--secondary-accent)';
-    btn.textContent = '✓ Аккаунт успешно переведен на PRO';
-    showToast('🎉 Все корпоративные лимиты сняты!');
-  } else {
-    status.textContent = 'ТЕКУЩИЙ ТАРИФ: FREE';
-    status.style.color = 'var(--amber-accent)';
-    projVal.textContent = '3 / 3 Проекта';
-    projBar.style.background = 'var(--amber-accent)';
-    btn.textContent = '⚡ Переключить аккаунт на PRO Enterprise (19 900 ₸/мес)';
-  }
-}
-
-function addTeamMember() {
-  const input = document.getElementById('new-member-email');
-  if (input && input.value.trim()) {
-    playClick();
-    teamMembers.push(input.value.trim());
-    input.value = '';
-    loadModel('per-seat');
-  }
-}
-
-function removeTeamMember(idx) {
+function selectSeatPkg(seats, rate) {
   playClick();
-  teamMembers.splice(idx, 1);
+  seatPackageCount = seats;
   loadModel('per-seat');
 }
 
-function updateMeteredDashboard() {
-  const apiVal = document.getElementById('metered-api-slider').value;
-  const gbVal = document.getElementById('metered-gb-slider').value;
+function updatePpuFlexCalc() {
+  const reqVal = document.getElementById('ppu-req-slider').value;
+  const allowFlex = document.getElementById('flex-allow-check').checked;
 
-  document.getElementById('metered-api-val').textContent = `${parseInt(apiVal).toLocaleString()} вызовов`;
-  document.getElementById('metered-gb-val').textContent = `${gbVal} GB`;
-
-  const apiCost = (apiVal / 1000) * 0.2;
-  const gbCost = gbVal * 0.08;
-  const totalUsd = apiCost + gbCost;
-
-  document.getElementById('metered-api-cost').textContent = `$${apiCost.toFixed(2)}`;
-  document.getElementById('metered-gb-cost').textContent = `$${gbCost.toFixed(2)}`;
-  document.getElementById('metered-total-cost').textContent = `$${totalUsd.toFixed(2)} (~${Math.round(totalUsd * 450).toLocaleString()} ₸)`;
-}
-
-function updateSfDashboard() {
-  const val = document.getElementById('sf-slider').value;
-  document.getElementById('sf-saved-val').textContent = `${parseInt(val).toLocaleString()} ₸`;
-  document.getElementById('sf-effect-display').textContent = `${parseInt(val).toLocaleString()}`;
+  document.getElementById('ppu-req-display').textContent = `${parseInt(reqVal).toLocaleString()} запросов`;
+  document.getElementById('flex-status-text').textContent = allowFlex ? '☑ Бесперебойный режим (Flex Active)' : '☒ Жесткий лимит (Block Overuse)';
+  document.getElementById('flex-status-text').style.color = allowFlex ? 'var(--secondary-accent)' : 'var(--amber-accent)';
   
-  const fee = val * 0.10;
-  const net = val - fee;
-
-  document.getElementById('sf-client-net').textContent = `${Math.round(net).toLocaleString()} ₸`;
-  document.getElementById('sf-service-fee').textContent = `${Math.round(fee).toLocaleString()} ₸`;
+  const baseCost = (reqVal / 1000) * 0.2;
+  document.getElementById('flex-min-total').textContent = `$${baseCost.toFixed(2)} / мес (~${Math.round(baseCost * 450).toLocaleString()} ₸)`;
 }
 
-function updateIsaDashboard() {
-  const val = document.getElementById('isa-sal-slider').value;
-  document.getElementById('isa-sal-val').textContent = `${parseInt(val).toLocaleString()} ₸ / мес`;
-  const monthly = val * 0.15;
-  document.getElementById('isa-pay-monthly').textContent = `${Math.round(monthly).toLocaleString()} ₸ / мес`;
+function updateWoltAdsCalc() {
+  const val = document.getElementById('sf-orders-slider').value;
+  const totalSales = val * 5000;
+  const fee = totalSales * 0.10;
+
+  document.getElementById('sf-orders-val').textContent = `${val} заказов (${totalSales.toLocaleString()} ₸)`;
+  document.getElementById('sf-wolt-fee').textContent = `${Math.round(fee).toLocaleString()} ₸`;
+}
+
+function updateIsaMktCalc() {
+  const val = document.getElementById('isa-mkt-slider').value;
+  document.getElementById('isa-mkt-sal').textContent = `${parseInt(val).toLocaleString()} ₸ / мес`;
+  const pay = val * 0.15;
+  document.getElementById('isa-mkt-pay').textContent = `${Math.round(pay).toLocaleString()} ₸ / мес`;
 }
 
 function updateMpDashboard() {
   const val = document.getElementById('mp-gmv-slider').value;
   document.getElementById('mp-gmv-val').textContent = `${parseInt(val).toLocaleString()} ₸`;
-  const take = val * 0.12;
-  const net = val - take - 5000;
+  const take = val * 0.10;
+  const net = val - take - 15000 - 850;
 
   document.getElementById('mp-take-cost').textContent = `${Math.round(take).toLocaleString()} ₸`;
   document.getElementById('mp-vendor-net').textContent = `${Math.round(net).toLocaleString()} ₸`;
 }
 
-function selectCreditPack(tokens, price) {
+function selectTokenPack(tokens, price) {
   playClick();
-  document.getElementById('credits-balance-display').textContent = `Баланс: ${tokens} Токенов`;
-}
-
-function updateLeaseDashboard() {
-  const val = document.getElementById('lease-slider').value;
-  document.getElementById('lease-months-val').textContent = `${val} месяцев`;
-  const monthly = (1200000 / val) + 15000;
-  document.getElementById('lease-monthly-cost').textContent = `${Math.round(monthly).toLocaleString()} ₸ / мес`;
-}
-
-function updateAdsDashboard() {
-  const val = document.getElementById('ads-slider').value;
-  document.getElementById('ads-views-val').textContent = `${parseInt(val).toLocaleString()} просмотров`;
-  const total = (val / 1000) * 1600;
-  document.getElementById('ads-net-total').textContent = `${Math.round(total).toLocaleString()} ₸ / мес`;
+  loadModel('prepaid-credits');
 }
 
 function setPwywVal(val) {
   playClick();
-  document.getElementById('pwyw-val-display').textContent = `Выбрано: ${val.toLocaleString()} ₸`;
   document.getElementById('pwyw-btn-val').textContent = `${val.toLocaleString()} ₸`;
 }
 
@@ -1331,7 +1192,7 @@ function triggerSimPayment(msg) {
   const title = currentModel ? currentModel.title.split('(')[0] : 'Оплата услуги';
   
   let amount = '24 900 ₸';
-  const priceEl = document.querySelector('.tier-price') || document.querySelector('#sub-final-total') || document.querySelector('#seat-calc-total') || document.querySelector('#metered-total-cost') || document.querySelector('#sf-service-fee');
+  const priceEl = document.querySelector('.plan-card-display-price') || document.querySelector('#sub-total-charge') || document.querySelector('#seat-pkg-total-usd') || document.querySelector('#sf-wolt-fee');
   if (priceEl) amount = priceEl.textContent.trim();
 
   document.getElementById('checkout-item-name').textContent = `Модель: ${title}`;
